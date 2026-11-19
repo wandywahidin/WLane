@@ -1,8 +1,28 @@
 <script setup lang="ts">
-import type { Step } from '~/types/demo'
+import { ref } from 'vue'
+import type { Step } from '../../types/demo'
+import { stepArea } from '../../utils/area'
+import { buttonIssues } from '../../utils/modal-buttons'
 import UiIcon from '../UiIcon.vue'
 
 const props = defineProps<{ steps: Step[]; activeIndex: number; imageUrl: (path: string) => string; busy?: boolean }>()
+
+const isModal = (s: Step) => s.kind === 'modal'
+// Sama dengan aturan terbit: sorotan butuh hotspot; modal butuh judul, tombol, label, dan link https://.
+function incomplete(s: Step): boolean {
+  if (!isModal(s)) return s.hotspot_x === null
+  const buttons = s.buttons ?? []
+  return !s.modal_title?.trim() || buttons.length === 0 || buttons.some(b => buttonIssues(b).length > 0)
+}
+function caption(s: Step): string {
+  if (isModal(s)) return s.modal_title?.trim() ? s.modal_title : 'Modal tanpa judul'
+  if (s.hotspot_x === null) return 'Belum ada hotspot'
+  return s.tooltip_text || 'Tanpa tooltip'
+}
+function areaStyle(s: Step) {
+  const a = stepArea(s)
+  return a && { left: `${a.x - a.w / 2}%`, top: `${a.y - a.h / 2}%`, width: `${a.w}%`, height: `${a.h}%` }
+}
 const emit = defineEmits<{
   select: [index: number]
   reorder: [from: number, to: number]
@@ -60,17 +80,32 @@ function move(i: number, delta: number) {
           <div class="relative overflow-hidden rounded-lg bg-slate-100">
             <img :src="imageUrl(step.image_path)" alt="" loading="lazy" draggable="false" class="aspect-[16/10] w-full object-cover object-top">
             <span
-              class="absolute top-1.5 left-1.5 grid size-6 place-items-center rounded-full text-xs font-bold text-white shadow"
-              :class="step.hotspot_x === null ? 'bg-amber-500' : 'bg-brand-600'"
+              class="absolute top-1.5 left-1.5 z-[1] grid size-6 place-items-center rounded-full text-xs font-bold text-white shadow"
+              :class="incomplete(step) ? 'bg-amber-500' : 'bg-brand-600'"
             >{{ i + 1 }}</span>
+            <template v-if="isModal(step)">
+              <span class="absolute inset-0 grid place-items-center bg-slate-900/45">
+                <span class="grid size-8 place-items-center rounded-lg bg-white text-brand-600 shadow" title="Modal">
+                  <UiIcon name="window" :size="18" />
+                </span>
+              </span>
+            </template>
             <span
-              v-if="step.hotspot_x !== null && step.hotspot_y !== null"
+              v-else-if="areaStyle(step)"
+              class="absolute rounded-sm border-2 border-brand-600 bg-brand-500/15"
+              :style="areaStyle(step)!"
+            />
+            <span
+              v-else-if="step.hotspot_x !== null && step.hotspot_y !== null"
               class="absolute size-2.5 -translate-1/2 rounded-full bg-brand-600 ring-2 ring-white"
               :style="{ left: `${step.hotspot_x}%`, top: `${step.hotspot_y}%` }"
             />
           </div>
-          <p class="mt-1.5 line-clamp-1 px-0.5 text-xs" :class="step.tooltip_text ? 'text-slate-600' : 'text-slate-400 italic'">
-            {{ step.hotspot_x === null ? 'Belum ada hotspot' : step.tooltip_text || 'Tanpa tooltip' }}
+          <p
+            class="mt-1.5 line-clamp-1 px-0.5 text-xs"
+            :class="(isModal(step) ? step.modal_title?.trim() : step.tooltip_text) ? 'text-slate-600' : 'text-slate-400 italic'"
+          >
+            {{ caption(step) }}
           </p>
         </button>
 

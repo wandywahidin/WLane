@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import type { TooltipPlacement } from '~/types/demo'
+import type { StepKind } from '~/types/demo'
+import type { Area } from '~/utils/area'
+import type { StepPatch } from '~/composables/useEditor'
 
 definePageMeta({ middleware: 'auth' })
 
@@ -23,7 +25,8 @@ const active = computed(() => steps.value[activeIndex.value] ?? null)
 const status = computed(() => (demo.value ? demoStatus(demo.value) : 'draft'))
 const shareUrl = computed(() => (demo.value ? publicDemoUrl(origin.value, demo.value.slug) : ''))
 const shareCode = computed(() => (demo.value ? embedCode(origin.value, demo.value.slug) : ''))
-const missingHotspots = computed(() => steps.value.filter(s => s.hotspot_x === null).length)
+// Hanya langkah sorotan yang butuh hotspot.
+const missingHotspots = computed(() => steps.value.filter(s => s.kind !== 'modal' && s.hotspot_x === null).length)
 
 const SAVE = {
   idle: { label: 'Semua perubahan tersimpan otomatis', icon: 'cloud', cls: 'text-slate-400' },
@@ -77,14 +80,14 @@ function onRemove() {
   if (id) void run(() => editor.removeStep(id), 'Gagal menghapus langkah')
 }
 
-function onPlace(pos: { x: number; y: number }) {
-  if (active.value) editor.updateStep(active.value.id, { hotspot_x: pos.x, hotspot_y: pos.y })
+function onArea(a: Area) {
+  if (active.value) editor.updateStep(active.value.id, { hotspot_x: a.x, hotspot_y: a.y, area_w: a.w, area_h: a.h })
 }
-function onText(value: string) {
-  if (active.value) editor.updateStep(active.value.id, { tooltip_text: value.slice(0, 280) })
+function onKind(kind: StepKind) {
+  if (active.value) editor.setKind(active.value.id, kind)
 }
-function onPlacement(value: TooltipPlacement) {
-  if (active.value) editor.updateStep(active.value.id, { tooltip_placement: value })
+function onPatch(patch: StepPatch) {
+  if (active.value) editor.updateStep(active.value.id, patch)
 }
 
 async function onTitle(e: Event) {
@@ -191,7 +194,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     </div>
     <div v-else-if="steps.length > 0 && missingHotspots > 0 && status === 'draft'" class="flex items-center gap-2 border-b border-slate-200 bg-white px-4 py-2 text-sm text-slate-600">
       <UiIcon name="cursor" :size="16" class="text-amber-500" />
-      {{ missingHotspots }} langkah belum punya hotspot. Klik di gambar untuk menaruhnya.
+      {{ missingHotspots }} langkah belum punya hotspot. Klik atau tarik di gambar untuk menandainya.
     </div>
 
     <!-- isi -->
@@ -212,15 +215,15 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         :step="active"
         :image-url="imageUrl"
         :busy="busy"
-        @place="onPlace"
+        @area="onArea"
         @add="onAdd"
       />
-      <EditorTooltipPanel
+      <EditorStepPanel
         class="overflow-auto border-t border-slate-200 bg-white lg:border-t-0 lg:border-l"
         :step="active"
         :index="activeIndex"
-        @text="onText"
-        @placement="onPlacement"
+        @kind="onKind"
+        @patch="onPatch"
       />
     </main>
     <div v-else-if="!loadError" class="grid flex-1 place-items-center text-sm text-slate-400">Memuat editor…</div>
