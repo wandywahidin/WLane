@@ -1,0 +1,28 @@
+{
+  "name": "panduan-interaktif",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "test:unit": "vitest run",
+    "test:db": "supabase test db"
+  },
+  "dependencies": {
+    "@nuxtjs/supabase": "^2.1.0",
+    "nuxt": "^3.21.11",
+    "vue": "^3.5.45",
+    "vue-router": "^4.6.5"
+  },
+  "devDependencies": {
+    "@nuxt/test-utils": "^4.4.0",
+    "@vue/test-utils": "^2.6.0",
+    "happy-dom": "^21.0.4",
+    "supabase": "^3.2.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}
