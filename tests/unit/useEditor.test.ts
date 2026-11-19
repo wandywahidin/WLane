@@ -17,7 +17,7 @@ vi.mock('../../utils/image-compress', () => ({
   prepareImages: vi.fn(async () => m.prepared),
 }))
 
-import { useEditor } from '../../composables/useEditor'
+import { publishErrorMessage, useEditor } from '../../composables/useEditor'
 import { deleteImages, imagePath } from '../../utils/image-store'
 
 const demoRow = { id: 'd1', owner_id: 'u1', title: 'Demo', slug: 'abcd1234', status: 'draft',
@@ -292,5 +292,58 @@ describe('langkah', () => {
     const uploads = m.log.filter(l => l.startsWith('upload:'))
     expect(uploads).toHaveLength(1) // file kedua tidak dicoba
     expect(deleteImages).toHaveBeenCalledWith(expect.anything(), [uploads[0]!.slice('upload:'.length)])
+  })
+})
+
+describe('jenis langkah (sorotan/modal)', () => {
+  const X = { label: 'Buka', action: 'link' as const, url: 'https://a.id' }
+  const modalStep = () => ({
+    ...stepRow('s1', 0), kind: 'hotspot', area_w: 16, area_h: 10,
+    modal_title: 'Halo', modal_body: '', buttons: [X],
+  })
+
+  it('setKind modal pada langkah tanpa tombol â†’ satu update dengan tombol bawaan', async () => {
+    vi.useFakeTimers()
+    const { editor, calls } = setup({ steps: [{ ...stepRow('s1', 0), kind: 'hotspot', buttons: [] }] })
+    await editor.load()
+    editor.setKind('s1', 'modal')
+    await vi.advanceTimersByTimeAsync(800)
+    const updates = calls.filter(c => c.op === 'update')
+    expect(updates).toHaveLength(1)
+    expect(updates[0]!.payload).toEqual({ kind: 'modal', buttons: [{ label: 'Lanjut', action: 'next', primary: true }] })
+  })
+
+  it('bolak-balik jenis tidak menghapus field jenis lain dan patch tidak berisi field kosong', async () => {
+    vi.useFakeTimers()
+    const { editor, calls } = setup({ steps: [modalStep()] })
+    await editor.load()
+    editor.setKind('s1', 'modal')
+    editor.setKind('s1', 'hotspot')
+    editor.setKind('s1', 'modal')
+    await vi.advanceTimersByTimeAsync(800)
+    const s = editor.steps.value[0]!
+    expect(s.modal_title).toBe('Halo')
+    expect(s.buttons).toEqual([X])
+    expect(s.area_w).toBe(16)
+    for (const u of calls.filter(c => c.op === 'update')) {
+      expect(u.payload).toEqual({ kind: 'modal' })
+    }
+  })
+
+  it('updateStep buttons setengah jadi dikirim apa adanya dan berupa salinan', async () => {
+    vi.useFakeTimers()
+    const { editor, calls } = setup()
+    await editor.load()
+    const buttons = [{ label: '', action: 'link' as const, url: 'ht' }]
+    editor.updateStep('s1', { buttons })
+    buttons[0]!.url = 'berubah'
+    await vi.advanceTimersByTimeAsync(800)
+    expect(calls.filter(c => c.op === 'update')[0]!.payload).toEqual({ buttons: [{ label: '', action: 'link', url: 'ht' }] })
+  })
+
+  it('publishErrorMessage mendukung modal tidak lengkap dan pesan gabungan', () => {
+    expect(publishErrorMessage('PUBLISH_INCOMPLETE_MODAL:3')).toBe('Langkah 3: lengkapi modal (judul, tombol, dan link https://)')
+    expect(publishErrorMessage('PUBLISH_MISSING_HOTSPOT:1;PUBLISH_INCOMPLETE_MODAL:2'))
+      .toBe('Langkah 1 belum punya hotspot. Langkah 2: lengkapi modal (judul, tombol, dan link https://)')
   })
 })

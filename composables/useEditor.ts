@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Demo, Step } from '../types/demo'
+import type { Demo, Step, StepKind } from '../types/demo'
+import { DEFAULT_MODAL_BUTTON } from '../utils/modal-buttons'
 import { deleteImages, imagePath, listDemoImages, uploadImage } from '../utils/image-store'
 import { prepareImages } from '../utils/image-compress'
 import { moveItem } from '../utils/positions'
@@ -8,7 +9,10 @@ import { orphanedImages } from '../utils/orphans'
 import { readConfigInt } from '../utils/app-config'
 
 export type SaveState = 'idle' | 'saving' | 'saved' | 'error'
-export type StepPatch = Partial<Pick<Step, 'hotspot_x' | 'hotspot_y' | 'tooltip_text' | 'tooltip_placement'>>
+export type StepPatch = Partial<Pick<Step,
+  'hotspot_x' | 'hotspot_y' | 'area_w' | 'area_h' | 'tooltip_text' | 'tooltip_placement'
+  | 'kind' | 'modal_title' | 'modal_body' | 'buttons'
+>>
 export type AddImageError = 'type' | 'size' | 'decode' | 'upload'
 
 const RETRY_MS = 2000
@@ -16,8 +20,12 @@ const RETRY_MS = 2000
 export function publishErrorMessage(message: string | undefined): string {
   const m = message ?? ''
   if (m.includes('PUBLISH_EMPTY')) return 'Tambahkan minimal satu langkah'
+  const parts: string[] = []
   const missing = m.match(/PUBLISH_MISSING_HOTSPOT:([\d,]+)/)
-  if (missing) return `Langkah ${missing[1]!.split(',').join(', ')} belum punya hotspot`
+  if (missing) parts.push(`Langkah ${missing[1]!.split(',').join(', ')} belum punya hotspot`)
+  const incomplete = m.match(/PUBLISH_INCOMPLETE_MODAL:([\d,]+)/)
+  if (incomplete) parts.push(`Langkah ${incomplete[1]!.split(',').join(', ')}: lengkapi modal (judul, tombol, dan link https://)`)
+  if (parts.length) return parts.join('. ')
   return 'Gagal menerbitkan, coba lagi'
 }
 
@@ -67,10 +75,21 @@ export function useEditor(
   function updateStep(id: string, patch: StepPatch): void {
     const step = steps.value.find(s => s.id === id)
     if (!step) return
-    Object.assign(step, patch)
-    pending[id] = { ...pending[id], ...patch }
+    const safe: StepPatch = patch.buttons ? { ...patch, buttons: patch.buttons.map(b => ({ ...b })) } : patch
+    Object.assign(step, safe)
+    pending[id] = { ...pending[id], ...safe }
     // Saat error, retry yang sudah terjadwal ikut membawa patch baru ini.
     if (saveState.value !== 'error') schedule(debounceMs)
+  }
+
+  function setKind(id: string, kind: StepKind): void {
+    const step = steps.value.find(s => s.id === id)
+    if (!step) return
+    if (kind === 'modal' && (step.buttons?.length ?? 0) === 0) {
+      updateStep(id, { kind, buttons: [{ ...DEFAULT_MODAL_BUTTON }] })
+    } else {
+      updateStep(id, { kind })
+    }
   }
 
   /** Mengirim semua patch tertunda. true kalau semuanya tersimpan. */
@@ -266,6 +285,7 @@ export function useEditor(
 
   return {
     demo, steps, activeIndex, saveState, publishError, addError, busy,
-    load, updateStep, flush, hasPendingChanges, addImages, removeStep, reorder, publish, unpublish, rename,
+    load, updateStep, setKind, flush, hasPendingChanges, addImages, removeStep, reorder, publish, unpublish, rename,
   }
 }
+
