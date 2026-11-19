@@ -7,6 +7,9 @@ const route = useRoute()
 const errorMessage = computed(() => authErrorMessage(authErrorParams(route.query, route.hash)))
 const loading = ref(false)
 
+// Login dev (hardcode) hanya ada saat `npm run dev`; import dinamis ini dibuang dari build production.
+const DevLogin = import.meta.dev ? defineAsyncComponent(() => import('~/components/DevLogin.vue')) : null
+
 async function signIn() {
   loading.value = true
   try {
@@ -23,6 +26,7 @@ async function signIn() {
     <p>Buat panduan interaktif untuk website Anda.</p>
     <p v-if="errorMessage" class="error" role="alert">{{ errorMessage }}</p>
     <button type="button" :disabled="loading" @click="signIn">Mulai dengan Google</button>
+    <component :is="DevLogin" v-if="DevLogin" />
     <p class="legal">
       Dengan masuk, Anda menyetujui <NuxtLink to="/syarat">syarat penggunaan</NuxtLink>
       dan <NuxtLink to="/privasi">kebijakan privasi</NuxtLink>.

@@ -2,6 +2,8 @@ begin;
 select plan(7);
 
 -- ---------- LIMIT_USERS ----------
+-- Mulai dari nol: database lokal mungkin sudah berisi akun dev (di-rollback di akhir).
+delete from auth.users;
 insert into auth.users (id, email)
 select gen_random_uuid(), 'u' || i || '@test.local' from generate_series(1, 20) i;
 select is((select count(*)::int from auth.users), 20, '20 user bisa dibuat');

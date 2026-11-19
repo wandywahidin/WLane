@@ -224,8 +224,10 @@ web3 = 30
 [auth.email]
 # Allow/disallow the email provider. When false, users can't sign up or sign in with email.
 # To block new signups only, set enable_signup = false under [auth] instead.
-# Login hanya lewat Google (lihat [auth.external.google]).
-enabled = false
+# File ini hanya untuk Supabase LOKAL. Email aktif di sini untuk login dev hardcode
+# (utils/dev-login.ts, hanya tampil saat `npm run dev`). Di Supabase cloud provider
+# Email tetap dimatikan lewat dashboard, jadi production tetap hanya Google.
+enabled = true
 # If enabled, a user will be required to confirm any email change on both the old, and new email
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
