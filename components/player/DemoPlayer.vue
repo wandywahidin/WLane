@@ -60,7 +60,7 @@ watch(index, (i) => {
 <template>
   <div class="demo-player mx-auto w-full max-w-6xl" :class="{ fit }">
     <template v-if="!done && current">
-      <div class="stage-wrap">
+      <div class="stage-wrap relative">
         <div
           data-test="stage"
           class="stage relative leading-[0]"
@@ -74,14 +74,7 @@ watch(index, (i) => {
             draggable="false"
             class="block h-auto w-full rounded-xl bg-slate-100 shadow-xl ring-1 shadow-slate-900/10 ring-slate-900/10 select-none"
           >
-          <PlayerModal
-            v-if="current.kind === 'modal'"
-            :title="current.modal_title"
-            :body="current.modal_body"
-            :buttons="current.buttons"
-            @next="next"
-            @back="prev"
-          />
+          <div v-if="isModal" data-test="dim" class="pointer-events-none absolute inset-0 z-[3] rounded-xl bg-slate-900/55" />
           <template v-else-if="area">
             <div class="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-xl">
               <div
@@ -118,6 +111,16 @@ watch(index, (i) => {
             :y="anchor.y"
           />
         </div>
+        <!-- Modal menutupi seluruh area panggung (bukan hanya kotak gambar) supaya kartu tidak ikut menyempit. -->
+        <PlayerModal
+          v-if="current.kind === 'modal'"
+          no-dim
+          :title="current.modal_title"
+          :body="current.modal_body"
+          :buttons="current.buttons"
+          @next="next"
+          @back="prev"
+        />
       </div>
       <PlayerTooltip
         v-if="!isModal && placement === 'below-image' && current.tooltip_text"

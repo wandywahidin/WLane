@@ -126,6 +126,17 @@ describe('DemoPlayer', () => {
       expect(w.text()).toContain('Langkah 2 dari 2')
     })
 
+    it('modal: lapisan di luar kotak gambar; tombol di luar area gulir', () => {
+      const w = mountSteps([modal(1, mb), plain(2)])
+      const stage = w.get('[data-test="stage"]').element
+      const modalEl = w.get('[data-test="modal"]').element
+      const body = w.get('[data-test="modal-body"]').element
+      expect(stage.contains(modalEl)).toBe(false)
+      expect(stage.querySelector('[data-test="dim"]')).not.toBeNull()
+      expect(body.contains(w.get('[data-test="modal-footer"]').element)).toBe(false)
+      for (const b of w.findAll('[data-test="modal-button"]')) expect(body.contains(b.element)).toBe(false)
+    })
+
     it('modal: teks literal, tombol link aman, klik Mulai maju', async () => {
       const w = mountSteps([modal(1, mb), plain(2)])
       const m = w.get('[data-test="modal"]')
