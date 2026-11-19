@@ -8,19 +8,40 @@ export const MIN_AREA = 2
 const r2 = (v: number) => Math.round(v * 100) / 100
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
+/**
+ * Satu sumbu: dari tepi lo..hi (persen) ke [pusat, ukuran] berdua 2 desimal yang
+ * dijamin c - s/2 >= 0 dan c + s/2 <= 100. Tepi dibulatkan ke dalam ke seperseratus,
+ * ukuran dibuat genap (seperseratus) supaya pusatnya juga tepat 2 desimal.
+ */
+function fit(lo: number, hi: number): [number, number] {
+  let L = Math.max(0, Math.ceil(lo * 100 - 1e-6))
+  let H = Math.min(10000, Math.floor(hi * 100 + 1e-6))
+  if ((H - L) % 2 !== 0) H -= 1
+  const min = MIN_AREA * 100
+  if (H - L < min) {
+    if (L + min <= 10000) H = L + min
+    else L = H - min
+  }
+  let c = (L + H) / 200
+  const s = (H - L) / 100
+  // jaga-jaga selisih pecahan biner
+  if (c - s / 2 < 0) c = r2(c + 0.01)
+  if (c + s / 2 > 100) c = r2(c - 0.01)
+  return [c, s]
+}
+
 function fromEdges(x1: number, y1: number, x2: number, y2: number): Area {
-  return { x: r2((x1 + x2) / 2), y: r2((y1 + y2) / 2), w: r2(x2 - x1), h: r2(y2 - y1) }
+  const [x, w] = fit(x1, x2)
+  const [y, h] = fit(y1, y2)
+  return { x, y, w, h }
 }
 
 /** Kotak berukuran bawaan di tengah klik, digeser supaya di dalam gambar. */
 export function areaFromClick(x: number, y: number): Area {
   const { w, h } = DEFAULT_AREA
-  return {
-    x: r2(clamp(x, w / 2, 100 - w / 2)),
-    y: r2(clamp(y, h / 2, 100 - h / 2)),
-    w,
-    h,
-  }
+  const cx = clamp(x, w / 2, 100 - w / 2)
+  const cy = clamp(y, h / 2, 100 - h / 2)
+  return fromEdges(cx - w / 2, cy - h / 2, cx + w / 2, cy + h / 2)
 }
 
 /** Sudut ke sudut; null kalau salah satu sisi < MIN_AREA (dianggap klik). */
@@ -34,12 +55,9 @@ export function areaFromDrag(a: { x: number; y: number }, b: { x: number; y: num
 }
 
 export function moveArea(area: Area, dx: number, dy: number): Area {
-  return {
-    x: r2(clamp(area.x + dx, area.w / 2, 100 - area.w / 2)),
-    y: r2(clamp(area.y + dy, area.h / 2, 100 - area.h / 2)),
-    w: r2(area.w),
-    h: r2(area.h),
-  }
+  const cx = clamp(area.x + dx, area.w / 2, 100 - area.w / 2)
+  const cy = clamp(area.y + dy, area.h / 2, 100 - area.h / 2)
+  return fromEdges(cx - area.w / 2, cy - area.h / 2, cx + area.w / 2, cy + area.h / 2)
 }
 
 /** Sudut lawan `corner` diam; sudut yang diseret mengikuti p. */

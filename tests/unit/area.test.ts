@@ -23,6 +23,38 @@ describe('area', () => {
     expect(m.h).toBe(2)
     expect(resizeArea({ x: 50, y: 50, w: 20, h: 20 }, 'nw', { x: -5, y: 60 }).x).toBe(30)
   })
+  it('every produced area is inside the image and has 2-decimal values (edge rounding sweep)', () => {
+    const inside = (a: { x: number; y: number; w: number; h: number } | null) => {
+      expect(a).not.toBeNull()
+      const v = a!
+      expect(v.x - v.w / 2).toBeGreaterThanOrEqual(0)
+      expect(v.x + v.w / 2).toBeLessThanOrEqual(100)
+      expect(v.y - v.h / 2).toBeGreaterThanOrEqual(0)
+      expect(v.y + v.h / 2).toBeLessThanOrEqual(100)
+      expect(v.w).toBeGreaterThanOrEqual(2)
+      expect(v.h).toBeGreaterThanOrEqual(2)
+      for (const n of [v.x, v.y, v.w, v.h]) expect(Math.round(n * 100) / 100).toBe(n)
+    }
+    for (let i = 201; i <= 3000; i++) {
+      const w = i / 100
+      // drag released past the left edge / right edge
+      inside(areaFromDrag({ x: w, y: 20 }, { x: -5, y: 40 }))
+      inside(areaFromDrag({ x: 100 - w, y: 20 }, { x: 105, y: 40 }))
+      // move a box with odd-hundredth width to both edges
+      inside(moveArea({ x: 50, y: 50, w, h: w }, -200, -200))
+      inside(moveArea({ x: 50, y: 50, w, h: w }, 200, 200))
+      // resize with the dragged corner outside the image
+      inside(resizeArea({ x: 50, y: 50, w, h: w }, 'nw', { x: -10, y: -10 }))
+      inside(resizeArea({ x: 50, y: 50, w, h: w }, 'se', { x: 110, y: 110 }))
+      inside(resizeArea({ x: w / 2, y: w / 2, w, h: w }, 'se', { x: 100, y: 100 }))
+    }
+    inside(areaFromDrag({ x: 0, y: 0 }, { x: 21.13, y: 40 }))
+    inside(areaFromDrag({ x: 100, y: 0 }, { x: 78.87, y: 40 }))
+    for (let i = 0; i <= 10000; i += 7) {
+      inside(areaFromClick(i / 100, i / 100))
+      if (i / 100 <= 97) inside(areaFromDrag({ x: i / 100, y: 0 }, { x: Math.min(100, i / 100 + 21.13), y: 50 }))
+    }
+  }, 60000)
   it('stepArea', () => {
     expect(stepArea({ hotspot_x: 10, hotspot_y: 10, area_w: null, area_h: null })).toBeNull()
     expect(stepArea({ hotspot_x: 10, hotspot_y: 10, area_w: 4, area_h: 6 })).toEqual({ x: 10, y: 10, w: 4, h: 6 })

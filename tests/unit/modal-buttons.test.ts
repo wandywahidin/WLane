@@ -4,7 +4,7 @@ import { isSafeUrl, buttonIssues, DEFAULT_MODAL_BUTTON, EXTRA_MODAL_BUTTON, MAX_
 describe('modal-buttons', () => {
   it('isSafeUrl', () => {
     expect(isSafeUrl('https://a.id')).toBe(true)
-    for (const u of ['http://a.id', 'javascript:alert(1)', 'https://', 'https:// a', undefined]) {
+    for (const u of ['HTTPS://a.id', 'http://a.id', 'javascript:alert(1)', 'https://', 'https:// a', undefined]) {
       expect(isSafeUrl(u as string | undefined)).toBe(false)
     }
   })

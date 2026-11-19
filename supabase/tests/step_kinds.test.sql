@@ -1,5 +1,5 @@
 begin;
-select plan(24);
+select plan(34);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a1', 'a@test.local');
@@ -12,7 +12,37 @@ insert into public.demos (id, owner_id, title, slug) values
   ('10000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-0000000000a1', 'Dua masalah',       'kind0003'),
   ('10000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-0000000000a1', 'Sukses',            'kind0004'),
   ('10000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-0000000000a1', 'Titik lama',        'kind0005'),
-  ('10000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-0000000000a1', 'Batas',             'kind0006');
+  ('10000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-0000000000a1', 'Batas',             'kind0006'),
+  ('10000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-0000000000a1', 'Link https kosong',  'kind0007'),
+  ('10000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-0000000000a1', 'Link HTTPS besar',   'kind0008');
+
+-- ===== 0008: tepi gambar, kunci tombol, batas area =====
+select lives_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, hotspot_x, hotspot_y, area_w, area_h)
+  values ('10000000-0000-0000-0000-000000000006', 'e/1.webp', 10, 10, 10, 50, 20, 10)$$, 'kotak tepat di tepi kiri lolos');
+select lives_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, hotspot_x, hotspot_y, area_w, area_h)
+  values ('10000000-0000-0000-0000-000000000006', 'e/2.webp', 10, 10, 10.56, 50, 21.13, 10)$$, 'kotak 0,005 melewati tepi kiri (pembulatan klien) lolos');
+select lives_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, hotspot_x, hotspot_y, area_w, area_h)
+  values ('10000000-0000-0000-0000-000000000006', 'e/3.webp', 10, 10, 99, 50, 2.01, 10)$$, 'kotak 0,005 melewati tepi kanan (pembulatan klien) lolos');
+select throws_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind, buttons)
+  values ('10000000-0000-0000-0000-000000000006', 'x', 10, 10, 'modal',
+          '[{"label":"a","action":"next","bogus":"zzz"}]')$$,
+  '23514', null, 'kunci tambahan di tombol ditolak');
+select throws_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind, buttons)
+  values ('10000000-0000-0000-0000-000000000006', 'x', 10, 10, 'modal',
+          '[{"label":"a","action":"next","primary":"yes"}]')$$,
+  '23514', null, 'primary bukan boolean ditolak');
+select throws_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind, area_w, area_h)
+  values ('10000000-0000-0000-0000-000000000006', 'x', 10, 10, 'modal', 101, 10)$$,
+  '23514', null, 'area_w 101 di langkah modal ditolak');
+select throws_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind, area_w, area_h)
+  values ('10000000-0000-0000-0000-000000000006', 'x', 10, 10, 'modal', 'NaN'::numeric, 10)$$,
+  '23514', null, 'area_w NaN ditolak');
+select throws_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind, area_w, area_h)
+  values ('10000000-0000-0000-0000-000000000006', 'x', 10, 10, 'modal', 10, 'Infinity'::numeric)$$,
+  '23514', null, 'area_h Infinity ditolak');
+insert into public.steps (demo_id, position, image_path, image_width, image_height, kind, modal_title, buttons) values
+  ('10000000-0000-0000-0000-000000000007', 0, 'a/7/a.webp', 10, 10, 'modal', 'Judul', '[{"label":"Buka","action":"link","url":"https://"}]'),
+  ('10000000-0000-0000-0000-000000000008', 0, 'a/8/a.webp', 10, 10, 'modal', 'Judul', '[{"label":"Buka","action":"link","url":"HTTPS://a.id"}]');
 
 -- ===== batas tabel (draf) =====
 select lives_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind, modal_title, buttons)
@@ -100,6 +130,11 @@ select throws_ok($$select public.publish_demo('10000000-0000-0000-0000-000000000
   'P0001', 'PUBLISH_INCOMPLETE_MODAL:1', 'modal dengan URL http ditolak');
 select throws_ok($$select public.publish_demo('10000000-0000-0000-0000-000000000003')$$,
   'P0001', 'PUBLISH_MISSING_HOTSPOT:1;PUBLISH_INCOMPLETE_MODAL:2', 'kedua masalah disebut sekaligus');
+
+select throws_ok($$select public.publish_demo('10000000-0000-0000-0000-000000000007')$$,
+  'P0001', 'PUBLISH_INCOMPLETE_MODAL:1', 'modal dengan link "https://" saja ditolak');
+select throws_ok($$select public.publish_demo('10000000-0000-0000-0000-000000000008')$$,
+  'P0001', 'PUBLISH_INCOMPLETE_MODAL:1', 'modal dengan link HTTPS:// huruf besar ditolak');
 
 select lives_ok($$select public.publish_demo('10000000-0000-0000-0000-000000000004')$$, 'modal lengkap + sorotan berarea terbit');
 select is((select published_snapshot -> 0 ->> 'kind' from public.demos where id = '10000000-0000-0000-0000-000000000004'),

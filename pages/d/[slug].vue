@@ -76,7 +76,7 @@ useHead({ bodyAttrs: { class: () => (embed.value ? 'bg-white' : '') } })
     <header v-if="found" class="mx-auto w-full max-w-6xl px-4 pt-6 pb-4 sm:px-6 sm:pt-10">
       <p class="text-xs font-semibold tracking-wide text-brand-600 uppercase">Panduan interaktif</p>
       <h1 class="mt-1 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{{ demo!.title }}</h1>
-      <p class="mt-1 text-sm text-slate-500">Klik titik biru yang berdenyut untuk lanjut ke langkah berikutnya.</p>
+      <p class="mt-1 text-sm text-slate-500">Ikuti langkahnya: klik area yang disorot atau tombol Lanjut.</p>
     </header>
 
     <main class="flex-1 px-4 pb-10 sm:px-6">
