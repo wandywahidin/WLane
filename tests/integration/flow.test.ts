@@ -122,6 +122,38 @@ describe('alur pembuat demo (Supabase lokal)', () => {
     expect(rows).toEqual([])
   })
 
+  it('langkah modal: draft tak lengkap tersimpan, terbit ditolak; lengkap + sorotan area → terbit', async () => {
+    const demos = useDemos(user)
+    const demo = await demos.create('Modal')
+    const editor = useEditor(demo.id, { client: user, debounceMs: 10 })
+    await editor.load()
+    await editor.addImages([png('m1.png'), png('m2.png')])
+    const [s1, s2] = editor.steps.value
+
+    editor.setKind(s1!.id, 'modal')
+    editor.updateStep(s1!.id, { buttons: [{ label: '', action: 'link', url: 'ht', primary: false }] })
+    expect(await editor.flush()).toBe(true)
+    editor.updateStep(s2!.id, { hotspot_x: 50, hotspot_y: 50, area_w: 16, area_h: 10, tooltip_text: 'area' })
+    expect(await editor.flush()).toBe(true)
+
+    await editor.publish()
+    expect(editor.publishError.value).toBe('Langkah 1: lengkapi modal (judul, tombol, dan link https://)')
+
+    editor.updateStep(s1!.id, {
+      modal_title: 'Selamat datang',
+      buttons: [{ label: 'Buka', action: 'link', url: 'https://contoh.id', primary: true }],
+    })
+    await editor.publish()
+    expect(editor.publishError.value).toBeNull()
+
+    const { data: pub } = await anon.rpc('get_published_demo', { p_slug: demo.slug })
+    const kinds = pub.steps.map((s: { kind: string }) => s.kind)
+    expect(kinds).toContain('modal')
+    expect(pub.steps.find((s: { area_w: number | null }) => s.area_w === 16)).toBeTruthy()
+
+    await demos.remove(demo.id)
+  })
+
   it('hapus akun menghapus user, demo, dan gambar', async () => {
     const demos = useDemos(user)
     const demo = await demos.create('Akan dihapus')
