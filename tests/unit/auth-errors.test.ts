@@ -23,6 +23,13 @@ describe('authErrorMessage', () => {
       .toBe('Kuota pengguna sedang penuh')
   })
 
+  it('pesan generik GoTrue saat trigger auth.users menolak → Kuota pengguna sedang penuh', () => {
+    // Callback OAuth membungkus exception trigger menjadi pesan generik ini;
+    // satu-satunya trigger di auth.users adalah batas akun.
+    expect(authErrorMessage({ error: 'server_error', error_description: 'Database error saving new user' }))
+      .toBe('Kuota pengguna sedang penuh')
+  })
+
   it('error lain → Login gagal, coba lagi', () => {
     expect(authErrorMessage({ error: 'access_denied', error_description: 'User denied' }))
       .toBe('Login gagal, coba lagi')

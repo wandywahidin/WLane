@@ -2,7 +2,11 @@
 export function authErrorMessage(query: Record<string, string | undefined>): string | null {
   const description = query.error_description ?? ''
   if (!query.error && !description) return null
-  if (description.includes('LIMIT_USERS')) return 'Kuota pengguna sedang penuh'
+  // Callback OAuth GoTrue membungkus exception trigger jadi "Database error saving new user";
+  // satu-satunya trigger di auth.users adalah batas akun (0002_limits.sql).
+  if (description.includes('LIMIT_USERS') || description.includes('Database error saving new user')) {
+    return 'Kuota pengguna sedang penuh'
+  }
   return 'Login gagal, coba lagi'
 }
 

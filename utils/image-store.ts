@@ -5,12 +5,14 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 const BUCKET = 'step-images'
 const PLACEHOLDER = '.emptyFolderPlaceholder'
 
-export function imagePath(userId: string, demoId: string): string {
-  return `${userId}/${demoId}/${crypto.randomUUID()}.webp`
+/** `jpg` hanya untuk fallback browser yang tidak bisa meng-encode WebP. */
+export function imagePath(userId: string, demoId: string, ext: 'webp' | 'jpg' = 'webp'): string {
+  return `${userId}/${demoId}/${crypto.randomUUID()}.${ext}`
 }
 
 export async function uploadImage(client: SupabaseClient, path: string, blob: Blob): Promise<void> {
-  const { error } = await client.storage.from(BUCKET).upload(path, blob, { contentType: 'image/webp', upsert: false })
+  const contentType = blob.type === 'image/jpeg' ? 'image/jpeg' : 'image/webp'
+  const { error } = await client.storage.from(BUCKET).upload(path, blob, { contentType, upsert: false })
   if (error) throw error
 }
 

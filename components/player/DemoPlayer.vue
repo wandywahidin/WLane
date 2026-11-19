@@ -4,7 +4,8 @@ import type { SnapshotStep } from '../../types/demo'
 import { resolvePlacement } from '../../utils/tooltip-placement'
 import PlayerTooltip from './PlayerTooltip.vue'
 
-const props = defineProps<{ steps: SnapshotStep[]; imageUrl: (path: string) => string }>()
+// fit: mode embed — seluruh player (gambar, tooltip, tombol) muat di tinggi iframe.
+const props = defineProps<{ steps: SnapshotStep[]; imageUrl: (path: string) => string; fit?: boolean }>()
 
 const index = ref(0)
 // SSR tidak tahu lebar layar; nilai sebenarnya diisi saat mount.
@@ -47,9 +48,14 @@ watch(index, (i) => {
 </script>
 
 <template>
-  <div class="demo-player">
+  <div class="demo-player" :class="{ fit }">
     <template v-if="!done && current">
-      <div class="stage">
+      <div class="stage-wrap">
+      <div
+        data-test="stage"
+        class="stage"
+        :style="{ '--ar': String(Math.round((current.image_width / current.image_height) * 1000) / 1000) }"
+      >
         <img
           :src="imageUrl(current.image_path)"
           :width="current.image_width"
@@ -74,6 +80,7 @@ watch(index, (i) => {
           :x="hotspot.x"
           :y="hotspot.y"
         />
+      </div>
       </div>
       <PlayerTooltip
         v-if="placement === 'below-image' && current.tooltip_text"
@@ -119,6 +126,13 @@ watch(index, (i) => {
   to { transform: scale(2.4); opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+/* Mode fit (embed): kolom setinggi iframe; panggung mengikuti rasio gambar
+   di dalam ruang yang tersisa supaya hotspot tetap tepat dan tombol tidak terpotong. */
+.fit { height: 100vh; display: flex; flex-direction: column; padding: 8px; }
+.fit .stage-wrap { flex: 1 1 auto; min-height: 0; container-type: size; display: flex; justify-content: center; align-items: flex-start; }
+.fit .stage { width: min(100cqw, 100cqh * var(--ar)); }
+.fit .controls { flex: none; margin-top: 6px; }
+.fit .finish { flex: 1; aspect-ratio: auto; min-height: 0; }
 .controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
 .progress { font-size: 0.9rem; color: #5b6475; }
 .finish {

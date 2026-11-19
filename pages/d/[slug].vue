@@ -59,7 +59,7 @@ useSeoMeta({
     </header>
 
     <p v-if="pending" class="state">Memuat…</p>
-    <PlayerDemoPlayer v-else-if="found" :steps="data!.steps" :image-url="imageUrl" />
+    <PlayerDemoPlayer v-else-if="found" :steps="data!.steps" :image-url="imageUrl" :fit="embed" />
     <div v-else class="state not-found">
       <h1>Demo tidak ditemukan</h1>
       <p>Link ini mungkin salah, atau demonya belum atau tidak lagi diterbitkan.</p>

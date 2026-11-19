@@ -31,6 +31,17 @@ describe('image-store', () => {
     expect(bucket.upload).toHaveBeenCalledWith('u/d/f.webp', blob, { contentType: 'image/webp', upsert: false })
   })
 
+  it('imagePath dengan ekstensi jpg untuk fallback JPEG', () => {
+    expect(imagePath('u', 'd', 'jpg')).toMatch(/^u\/d\/[0-9a-f-]{36}\.jpg$/)
+  })
+
+  it('uploadImage memakai content type JPEG untuk blob JPEG', async () => {
+    const { client, bucket } = mockClient()
+    const blob = new Blob(['x'], { type: 'image/jpeg' })
+    await uploadImage(client, 'u/d/f.jpg', blob)
+    expect(bucket.upload).toHaveBeenCalledWith('u/d/f.jpg', blob, { contentType: 'image/jpeg', upsert: false })
+  })
+
   it('uploadImage melempar error dari storage', async () => {
     const { client, bucket } = mockClient()
     bucket.upload.mockResolvedValue({ data: null, error: new Error('boom') })

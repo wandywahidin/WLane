@@ -75,12 +75,17 @@ export function useEditor(
 
   /** Mengirim semua patch tertunda. true kalau semuanya tersimpan. */
   async function flush(): Promise<boolean> {
-    if (inflight) await inflight
+    // Tunggu semua simpan yang berjalan, termasuk yang dimulai pemanggil lain saat kita menunggu.
+    while (inflight) await inflight
     if (timer) { clearTimeout(timer); timer = null }
     const batch = pending
     pending = {}
     const ids = Object.keys(batch)
-    if (ids.length === 0) return saveState.value !== 'error'
+    if (ids.length === 0) {
+      // Tidak ada yang tertunda (mis. patch gagal milik langkah yang sudah dihapus): tidak ada error lagi.
+      if (saveState.value === 'error' || saveState.value === 'saving') saveState.value = 'saved'
+      return true
+    }
 
     saveState.value = 'saving'
     inflight = (async () => {
@@ -133,7 +138,7 @@ export function useEditor(
           failed.push({ name: item.file.name, error: item.error ?? 'decode' })
           continue
         }
-        const path = imagePath(ownerId, demoId)
+        const path = imagePath(ownerId, demoId, item.result.blob.type === 'image/jpeg' ? 'jpg' : 'webp')
         try {
           await uploadImage(client, path, item.result.blob)
         } catch {
@@ -143,8 +148,8 @@ export function useEditor(
         const { data, error } = await client
           .from('steps')
           .insert({
+            // position diberikan database (0006) supaya unggahan dan hapus bersamaan tidak bentrok
             demo_id: demoId,
-            position: steps.value.length,
             image_path: path,
             image_width: item.result.width,
             image_height: item.result.height,
@@ -177,16 +182,13 @@ export function useEditor(
 
   async function removeStep(id: string): Promise<void> {
     delete pending[id]
-    const { error } = await client.from('steps').delete().eq('id', id)
-    if (error) throw error
+    // Hapus dan rapikan urutan dalam satu transaksi di database.
     // File tidak dihapus di sini: mungkin masih dipakai versi terbit.
+    const { error } = await client.rpc('delete_step', { p_step_id: id })
+    if (error) throw error
     const remaining = steps.value.filter(s => s.id !== id)
     applyOrder(remaining)
     if (activeIndex.value >= remaining.length) activeIndex.value = Math.max(0, remaining.length - 1)
-    if (remaining.length > 0) {
-      const { error: e } = await client.rpc('reorder_steps', { p_demo_id: demoId, p_step_ids: remaining.map(s => s.id) })
-      if (e) throw e
-    }
   }
 
   async function reorder(from: number, to: number): Promise<void> {
@@ -209,7 +211,10 @@ export function useEditor(
     if (!ownerId) return
     try {
       const stored = await listDemoImages(client, ownerId, demoId)
-      const draftPaths = steps.value.map(s => s.image_path)
+      // Baca ulang dari database: tab lain mungkin sudah menambah langkah.
+      const { data: rows, error } = await client.from('steps').select('image_path').eq('demo_id', demoId)
+      if (error) return
+      const draftPaths = ((rows ?? []) as Array<{ image_path: string }>).map(s => s.image_path)
       const snapshotPaths = (demo.value?.published_snapshot ?? []).map(s => s.image_path)
       await deleteImages(client, orphanedImages(stored, draftPaths, snapshotPaths))
     } catch {

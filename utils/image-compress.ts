@@ -22,8 +22,11 @@ export async function compressImage(file: File): Promise<CompressedImage> {
     const ctx = canvas.getContext('2d')
     if (!ctx) throw new Error('decode')
     ctx.drawImage(bitmap, 0, 0, width, height)
-    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/webp', WEBP_QUALITY))
-    if (!blob || blob.type !== 'image/webp') throw new Error('decode')
+    const encode = (type: string) => new Promise<Blob | null>(resolve => canvas.toBlob(resolve, type, WEBP_QUALITY))
+    let blob = await encode('image/webp')
+    // Safari/iOS tidak bisa meng-encode WebP dan diam-diam memberi PNG besar; pakai JPEG.
+    if (!blob || blob.type !== 'image/webp') blob = await encode('image/jpeg')
+    if (!blob || blob.type !== 'image/jpeg' && blob.type !== 'image/webp') throw new Error('decode')
     return { blob, width, height }
   } finally {
     bitmap.close()

@@ -18,7 +18,7 @@ vi.mock('../../utils/image-compress', () => ({
 }))
 
 import { useEditor } from '../../composables/useEditor'
-import { deleteImages } from '../../utils/image-store'
+import { deleteImages, imagePath } from '../../utils/image-store'
 
 const demoRow = { id: 'd1', owner_id: 'u1', title: 'Demo', slug: 'abcd1234', status: 'draft',
   published_snapshot: null, published_at: null, created_at: '', updated_at: '' }
@@ -95,7 +95,80 @@ describe('autosave', () => {
   })
 })
 
+describe('autosave (review akhir)', () => {
+  it('publish menunggu SEMUA simpan yang sedang berjalan, termasuk yang antre di belakang', async () => {
+    vi.useFakeTimers()
+    const gates: Array<() => void> = []
+    const { editor, log } = setup({
+      handler: (c) => {
+        if (c.op !== 'update') return undefined
+        const text = (c.payload as { tooltip_text?: string }).tooltip_text
+        return new Promise((resolve) => {
+          gates.push(() => { log.push(`done:${text}`); resolve({ data: null }) })
+        }) as unknown as ReturnType<NonNullable<H>>
+      },
+      rpc: () => ({ data: '2026-11-19T10:00:00Z' }),
+    })
+    await editor.load()
+    editor.updateStep('s1', { tooltip_text: 'a' })
+    await vi.advanceTimersByTimeAsync(800) // simpan A berjalan
+    editor.updateStep('s1', { tooltip_text: 'b' })
+    await vi.advanceTimersByTimeAsync(800) // simpan B antre di belakang A
+    const publishing = editor.publish()
+    await vi.advanceTimersByTimeAsync(0)
+    gates.shift()!() // A selesai → B mulai
+    await vi.advanceTimersByTimeAsync(0)
+    while (gates.length) { gates.shift()!(); await vi.advanceTimersByTimeAsync(0) }
+    await publishing
+
+    expect(log.indexOf('done:b')).toBeGreaterThan(-1)
+    expect(log.indexOf('done:b')).toBeLessThan(log.indexOf('rpc:publish_demo'))
+  })
+
+  it('error tidak macet kalau patch yang gagal milik langkah yang lalu dihapus', async () => {
+    vi.useFakeTimers()
+    const { editor } = setup({
+      handler: c => (c.op === 'update' ? { error: { message: 'Failed to fetch' } } : undefined),
+      rpc: () => ({ data: '2026-11-19T10:00:00Z' }),
+    })
+    await editor.load()
+    editor.updateStep('s1', { tooltip_text: 'x' })
+    await vi.advanceTimersByTimeAsync(800)
+    expect(editor.saveState.value).toBe('error')
+
+    await editor.removeStep('s1')
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(editor.saveState.value).not.toBe('error')
+    expect(editor.hasPendingChanges()).toBe(false)
+    await editor.publish()
+    expect(editor.publishError.value).toBeNull()
+  })
+})
+
 describe('publish', () => {
+  it('pembersihan memakai path langkah draft dari database, bukan state tab ini', async () => {
+    m.stored = ['a', 'b', 'c']
+    let loads = 0
+    let published = false
+    const { editor } = setup({
+      rpc: (fn) => { if (fn === 'publish_demo') published = true; return { data: '2026-11-19T10:00:00Z' } },
+      handler: (c) => {
+        if (c.table === 'steps' && c.op === 'select') {
+          loads++
+          // tab lain sudah menambah langkah 'c' setelah tab ini memuat
+          return { data: loads === 1 ? [stepRow('s1', 0, 'a')] : [stepRow('s1', 0, 'a'), stepRow('s9', 1, 'c')] }
+        }
+        if (c.table === 'demos' && c.op === 'select' && published) {
+          return { data: { ...demoRow, status: 'published', published_snapshot: [{ image_path: 'a' }] } }
+        }
+        return undefined
+      },
+    })
+    await editor.load()
+    await editor.publish()
+    expect(deleteImages).toHaveBeenCalledWith(expect.anything(), ['b'])
+  })
+
   it('PUBLISH_MISSING_HOTSPOT:2,4 → pesan nomor langkah, tanpa hapus file', async () => {
     const { editor } = setup({ rpc: () => ({ error: { message: 'PUBLISH_MISSING_HOTSPOT:2,4' } }) })
     await editor.load()
@@ -144,12 +217,14 @@ describe('publish', () => {
 })
 
 describe('langkah', () => {
-  it('removeStep tidak menghapus file, lalu merapikan urutan', async () => {
-    const { editor, rpc } = setup()
+  it('removeStep tidak menghapus file; hapus + rapikan urutan lewat satu RPC delete_step', async () => {
+    const { editor, rpc, calls } = setup()
     await editor.load()
     await editor.removeStep('s2')
     expect(deleteImages).not.toHaveBeenCalled()
-    expect(rpc).toHaveBeenCalledWith('reorder_steps', { p_demo_id: 'd1', p_step_ids: ['s1', 's3'] })
+    expect(rpc).toHaveBeenCalledWith('delete_step', { p_step_id: 's2' })
+    expect(rpc).not.toHaveBeenCalledWith('reorder_steps', expect.anything())
+    expect(calls.filter(c => c.op === 'delete')).toHaveLength(0)
     expect(editor.steps.value.map(s => [s.id, s.position])).toEqual([['s1', 0], ['s3', 1]])
   })
 
@@ -180,8 +255,22 @@ describe('langkah', () => {
     expect(failed).toEqual([{ name: 'x.heic', error: 'type' }])
     expect(m.log.filter(l => l.startsWith('upload:'))).toHaveLength(1)
     const insert = calls.find(c => c.op === 'insert')!
-    expect(insert.payload).toMatchObject({ demo_id: 'd1', position: 0, image_width: 1920, image_height: 1080 })
+    expect(insert.payload).toMatchObject({ demo_id: 'd1', image_width: 1920, image_height: 1080 })
+    // posisi diberikan database supaya unggahan + hapus bersamaan tidak membuat celah
+    expect(insert.payload).not.toHaveProperty('position')
     expect(editor.steps.value).toHaveLength(1)
+  })
+
+  it('hasil kompresi JPEG (fallback Safari) disimpan dengan ekstensi .jpg', async () => {
+    const f = new File(['x'], 'x.png', { type: 'image/png' })
+    m.prepared = [{ file: f, result: { blob: new Blob(['j'], { type: 'image/jpeg' }), width: 10, height: 10 } }]
+    const { editor } = setup({
+      steps: [],
+      handler: c => (c.table === 'steps' && c.op === 'insert' ? { data: { ...stepRow('n', 0), ...(c.payload as object) } } : undefined),
+    })
+    await editor.load()
+    await editor.addImages([f])
+    expect(imagePath).toHaveBeenLastCalledWith('u1', 'd1', 'jpg')
   })
 
   it('LIMIT_STEPS → berhenti, pesan batas, file langkah gagal dihapus', async () => {

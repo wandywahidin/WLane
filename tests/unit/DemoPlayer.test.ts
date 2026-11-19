@@ -79,6 +79,13 @@ describe('DemoPlayer', () => {
     expect(w.get('[data-test="tooltip"]').classes()).toEqual(expect.arrayContaining(['top', 'align-start']))
   })
 
+  it('mode fit (embed): panggung memakai rasio gambar supaya muat di tinggi iframe', () => {
+    const w = mount(DemoPlayer, { props: { steps, imageUrl, fit: true }, attachTo: document.body })
+    wrappers.push(w)
+    expect(w.classes()).toContain('fit')
+    expect(w.get('[data-test="stage"]').attributes('style')).toContain('--ar: 1.6')
+  })
+
   it('di desktop auto memilih sisi dari posisi hotspot', async () => {
     window.innerWidth = 1280
     const w = mountPlayer()

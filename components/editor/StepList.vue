@@ -14,6 +14,7 @@ const dragOver = ref<number | null>(null)
 const fileInput = ref<HTMLInputElement | null>(null)
 
 function onDrop(to: number) {
+  if (props.busy) return
   if (dragFrom.value !== null && dragFrom.value !== to) emit('reorder', dragFrom.value, to)
   dragFrom.value = null
   dragOver.value = null
@@ -40,7 +41,7 @@ function move(i: number, delta: number) {
         v-for="(step, i) in steps"
         :key="step.id"
         :class="{ active: i === activeIndex, over: i === dragOver, 'no-hotspot': step.hotspot_x === null }"
-        draggable="true"
+        :draggable="busy ? 'false' : 'true'"
         @dragstart="dragFrom = i"
         @dragover.prevent="dragOver = i"
         @dragleave="dragOver = null"
@@ -52,9 +53,9 @@ function move(i: number, delta: number) {
           <img :src="imageUrl(step.image_path)" alt="" loading="lazy" draggable="false">
         </button>
         <div class="tools">
-          <button type="button" title="Naik" :disabled="i === 0" @click="move(i, -1)">↑</button>
-          <button type="button" title="Turun" :disabled="i === steps.length - 1" @click="move(i, 1)">↓</button>
-          <button type="button" class="danger" title="Hapus langkah" @click="emit('remove', step.id)">✕</button>
+          <button type="button" title="Naik" :disabled="busy || i === 0" @click="move(i, -1)">↑</button>
+          <button type="button" title="Turun" :disabled="busy || i === steps.length - 1" @click="move(i, 1)">↓</button>
+          <button type="button" class="danger" title="Hapus langkah" :disabled="busy" @click="emit('remove', step.id)">✕</button>
         </div>
       </li>
     </ol>
