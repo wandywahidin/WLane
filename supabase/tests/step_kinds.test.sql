@@ -1,5 +1,5 @@
 begin;
-select plan(22);
+select plan(24);
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-0000000000a1', 'a@test.local');
@@ -59,6 +59,13 @@ select throws_ok($$insert into public.steps (demo_id, image_path, image_width, i
 select throws_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind)
   values ('10000000-0000-0000-0000-000000000006', 'x', 10, 10, 'form')$$,
   '23514', null, 'kind form ditolak');
+
+select throws_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind, buttons)
+  values ('10000000-0000-0000-0000-000000000006', 'x', 10, 10, 'modal', '[{}]')$$,
+  '23514', null, 'tombol kosong {} ditolak');
+select throws_ok($$insert into public.steps (demo_id, image_path, image_width, image_height, kind, buttons)
+  values ('10000000-0000-0000-0000-000000000006', 'x', 10, 10, 'modal', '[{"label":"x"}]')$$,
+  '23514', null, 'tombol tanpa action ditolak');
 
 -- ===== aturan terbit =====
 -- demo 1: langkah 1 titik lengkap, langkah 2 modal tanpa judul

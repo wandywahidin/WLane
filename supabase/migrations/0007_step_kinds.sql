@@ -11,14 +11,14 @@ as $$
      and jsonb_typeof(p) = 'array'
      and jsonb_array_length(p) <= 2
      and coalesce((
-       select bool_and(
+       select bool_and(coalesce(
                 jsonb_typeof(b) = 'object'
             and jsonb_typeof(b -> 'label') = 'string'
             and char_length(b ->> 'label') <= 30
             and (b ->> 'action') in ('next', 'back', 'link')
             and (not b ? 'url' or (jsonb_typeof(b -> 'url') = 'string' and char_length(b ->> 'url') <= 500))
             and (not b ? 'primary' or jsonb_typeof(b -> 'primary') = 'boolean')
-              )
+              , false))
          from jsonb_array_elements(p) b
      ), true)
      and (
@@ -89,7 +89,8 @@ begin
        or jsonb_array_length(buttons) < 1
        or exists (
          select 1 from jsonb_array_elements(s.buttons) b
-          where btrim(coalesce(b ->> 'label', '')) = ''
+          where coalesce(b ->> 'action', '') not in ('next', 'back', 'link')
+             or btrim(coalesce(b ->> 'label', '')) = ''
              or (b ->> 'action' = 'link' and coalesce(b ->> 'url', '') !~ '^https://')
        )
      );
