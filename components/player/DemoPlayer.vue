@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { SnapshotStep } from '../../types/demo'
-import { resolvePlacement } from '../../utils/tooltip-placement'
+import { anchorPoint, resolvePlacement } from '../../utils/tooltip-placement'
+import { normalizeSnapshotStep } from '../../utils/snapshot'
+import { stepArea } from '../../utils/area'
 import PlayerTooltip from './PlayerTooltip.vue'
+import PlayerModal from './PlayerModal.vue'
 import UiIcon from '../UiIcon.vue'
 
 // fit: mode embed — seluruh player (gambar, tooltip, tombol) muat di tinggi iframe.
@@ -12,9 +15,14 @@ const index = ref(0)
 // SSR tidak tahu lebar layar; nilai sebenarnya diisi saat mount.
 const viewportWidth = ref(1024)
 
-const total = computed(() => props.steps.length)
+// Snapshot lama tanpa kind/area/buttons dinormalkan jadi sorotan berbentuk titik.
+const steps = computed(() => props.steps.map(s => normalizeSnapshotStep(s)))
+const total = computed(() => steps.value.length)
 const done = computed(() => index.value >= total.value)
-const current = computed(() => props.steps[index.value] ?? null)
+const current = computed(() => steps.value[index.value] ?? null)
+const isModal = computed(() => current.value?.kind === 'modal')
+const area = computed(() => (current.value ? stepArea(current.value) : null))
+const anchor = computed(() => anchorPoint(placement.value, hotspot.value, area.value))
 const hotspot = computed(() => ({ x: Number(current.value?.hotspot_x ?? 50), y: Number(current.value?.hotspot_y ?? 50) }))
 const placement = computed(() =>
   current.value ? resolvePlacement(current.value.tooltip_placement, hotspot.value, viewportWidth.value) : 'below-image',
@@ -44,7 +52,7 @@ onBeforeUnmount(() => {
 
 // Muat gambar langkah berikutnya lebih dulu supaya pergantian terasa instan.
 watch(index, (i) => {
-  const nextStep = props.steps[i + 1]
+  const nextStep = steps.value[i + 1]
   if (nextStep && typeof Image !== 'undefined') new Image().src = props.imageUrl(nextStep.image_path)
 }, { immediate: true })
 </script>
@@ -66,7 +74,32 @@ watch(index, (i) => {
             draggable="false"
             class="block h-auto w-full rounded-xl bg-slate-100 shadow-xl ring-1 shadow-slate-900/10 ring-slate-900/10 select-none"
           >
+          <PlayerModal
+            v-if="current.kind === 'modal'"
+            :title="current.modal_title"
+            :body="current.modal_body"
+            :buttons="current.buttons"
+            @next="next"
+            @back="prev"
+          />
+          <template v-else-if="area">
+            <div class="pointer-events-none absolute inset-0 z-[1] overflow-hidden rounded-xl">
+              <div
+                class="absolute rounded-md shadow-[0_0_0_9999px_rgb(0_0_0/0.55)]"
+                :style="{ left: `${area.x - area.w / 2}%`, top: `${area.y - area.h / 2}%`, width: `${area.w}%`, height: `${area.h}%` }"
+              />
+            </div>
+            <button
+              data-test="area"
+              type="button"
+              class="absolute z-[1] cursor-pointer rounded-md border-[3px] border-brand-500 bg-transparent focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-amber-400 motion-safe:animate-pulse"
+              :style="{ left: `${area.x - area.w / 2}%`, top: `${area.y - area.h / 2}%`, width: `${area.w}%`, height: `${area.h}%` }"
+              :aria-label="index + 1 < total ? 'Lanjut ke langkah berikutnya' : 'Selesai'"
+              @click="next"
+            />
+          </template>
           <button
+            v-else
             data-test="hotspot"
             type="button"
             class="absolute z-[1] size-8 -translate-1/2 cursor-pointer rounded-full focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-amber-400"
@@ -78,20 +111,20 @@ watch(index, (i) => {
             <span class="pointer-events-none absolute inset-0 rounded-full border-[3px] border-white bg-brand-600 shadow-lg shadow-brand-900/40" />
           </button>
           <PlayerTooltip
-            v-if="placement !== 'below-image' && current.tooltip_text"
+            v-if="!isModal && placement !== 'below-image' && current.tooltip_text"
             :text="current.tooltip_text"
             :placement="placement"
-            :x="hotspot.x"
-            :y="hotspot.y"
+            :x="anchor.x"
+            :y="anchor.y"
           />
         </div>
       </div>
       <PlayerTooltip
-        v-if="placement === 'below-image' && current.tooltip_text"
+        v-if="!isModal && placement === 'below-image' && current.tooltip_text"
         :text="current.tooltip_text"
         placement="below-image"
-        :x="hotspot.x"
-        :y="hotspot.y"
+        :x="anchor.x"
+        :y="anchor.y"
       />
 
       <nav class="controls mt-4 flex items-center gap-3">

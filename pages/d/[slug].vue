@@ -13,7 +13,7 @@ async function loadPreview(): Promise<PublishedDemo | null> {
   if (!demo) return null
   const { data: rows } = await supabase
     .from('steps')
-    .select('image_path, image_width, image_height, hotspot_x, hotspot_y, tooltip_text, tooltip_placement')
+    .select('image_path, image_width, image_height, hotspot_x, hotspot_y, tooltip_text, tooltip_placement, kind, area_w, area_h, modal_title, modal_body, buttons')
     .eq('demo_id', demo.id)
     .order('position', { ascending: true })
   return { title: demo.title, slug: demo.slug, steps: (rows ?? []) as SnapshotStep[] }

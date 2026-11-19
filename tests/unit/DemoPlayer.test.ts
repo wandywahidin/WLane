@@ -86,6 +86,87 @@ describe('DemoPlayer', () => {
     expect(w.get('[data-test="stage"]').attributes('style')).toContain('--ar: 1.6')
   })
 
+  describe('sorotan dan modal', () => {
+    const base = (n: number) => ({ image_path: `p${n}.webp`, image_width: 1600, image_height: 1000 })
+    const area = (n: number) => ({ ...base(n), kind: 'hotspot', hotspot_x: 50, hotspot_y: 50, area_w: 20, area_h: 10, tooltip_text: `T${n}`, tooltip_placement: 'auto' })
+    const modal = (n: number, buttons: unknown[]) => ({ ...base(n), kind: 'modal', modal_title: 'Halo', modal_body: '<b>x</b>', buttons })
+    const plain = (n: number) => ({ ...base(n), kind: 'hotspot', hotspot_x: 10, hotspot_y: 10, tooltip_text: '', tooltip_placement: 'auto' })
+    const mountSteps = (s: unknown[]) => {
+      const w = mount(DemoPlayer, { props: { steps: s as SnapshotStep[], imageUrl }, attachTo: document.body })
+      wrappers.push(w)
+      return w
+    }
+    const mb = [{ label: 'Mulai', action: 'next', primary: true }, { label: 'Situs', action: 'link', url: 'https://a.id' }]
+
+    it('sorotan: kotak area berstyle persen sudut kiri-atas, tanpa titik; klik maju', async () => {
+      const w = mountSteps([area(1), plain(2)])
+      const a = w.get('[data-test="area"]')
+      const style = a.attributes('style')!
+      expect(style).toContain('left: 40%')
+      expect(style).toContain('top: 45%')
+      expect(style).toContain('width: 20%')
+      expect(style).toContain('height: 10%')
+      expect(w.find('[data-test="hotspot"]').exists()).toBe(false)
+      await a.trigger('click')
+      expect(w.text()).toContain('Langkah 2 dari 2')
+    })
+
+    it('snapshot lama: titik hotspot, tanpa area', () => {
+      const w = mountSteps([{ ...base(1), hotspot_x: 10, hotspot_y: 20, tooltip_text: 'x', tooltip_placement: 'auto' }])
+      expect(w.find('[data-test="hotspot"]').exists()).toBe(true)
+      expect(w.find('[data-test="area"]').exists()).toBe(false)
+    })
+
+    it('lebar 375: tooltip di bawah gambar dan klik area tetap maju', async () => {
+      window.innerWidth = 375
+      const w = mountSteps([area(1), plain(2)])
+      await flushPromises()
+      expect(w.get('[data-test="tooltip"]').classes()).toContain('below-image')
+      await w.get('[data-test="area"]').trigger('click')
+      expect(w.text()).toContain('Langkah 2 dari 2')
+    })
+
+    it('modal: teks literal, tombol link aman, klik Mulai maju', async () => {
+      const w = mountSteps([modal(1, mb), plain(2)])
+      const m = w.get('[data-test="modal"]')
+      expect(m.text()).toContain('Halo')
+      expect(m.text()).toContain('<b>x</b>')
+      expect(m.find('b').exists()).toBe(false)
+      expect(w.find('[data-test="hotspot"]').exists()).toBe(false)
+      expect(w.find('[data-test="area"]').exists()).toBe(false)
+      const link = w.findAll('[data-test="modal-button"]').find(b => b.text() === 'Situs')!
+      expect(link.element.tagName).toBe('A')
+      expect(link.attributes('href')).toBe('https://a.id')
+      expect(link.attributes('target')).toBe('_blank')
+      expect(link.attributes('rel')).toBe('noopener noreferrer')
+      await link.trigger('click')
+      expect(w.text()).toContain('Langkah 1 dari 2')
+      await w.findAll('[data-test="modal-button"]').find(b => b.text() === 'Mulai')!.trigger('click')
+      expect(w.text()).toContain('Langkah 2 dari 2')
+    })
+
+    it('tombol link dengan url tidak aman tidak dirender', () => {
+      const w = mountSteps([modal(1, [
+        { label: 'Ok', action: 'next', primary: true },
+        { label: 'Http', action: 'link', url: 'http://a.id' },
+        { label: 'Js', action: 'link', url: 'javascript:alert(1)' },
+      ])])
+      expect(w.findAll('[data-test="modal-button"]').map(b => b.text())).toEqual(['Ok'])
+    })
+
+    it('tombol back: di langkah 1 diam, di langkah 2 mundur', async () => {
+      const back = [{ label: 'Balik', action: 'back', primary: false }]
+      const w = mountSteps([modal(1, back), modal(2, back)])
+      await w.get('[data-test="modal-button"]').trigger('click')
+      expect(w.text()).toContain('Langkah 1 dari 2')
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
+      await flushPromises()
+      expect(w.text()).toContain('Langkah 2 dari 2')
+      await w.get('[data-test="modal-button"]').trigger('click')
+      expect(w.text()).toContain('Langkah 1 dari 2')
+    })
+  })
+
   it('di desktop auto memilih sisi dari posisi hotspot', async () => {
     window.innerWidth = 1280
     const w = mountPlayer()
