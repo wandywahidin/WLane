@@ -51,6 +51,24 @@ describe('useDemos.create', () => {
   })
 })
 
+describe('useDemos.load', () => {
+  it('mengisi thumbnail dari langkah pertama dan jumlah langkah', async () => {
+    const { client } = fakeSupabase(c => (c.table === 'demos'
+      ? { data: [
+          demoRow({ id: 'd1', steps: [{ image_path: 'u1/d1/b.webp', position: 1 }, { image_path: 'u1/d1/a.webp', position: 0 }] }),
+          demoRow({ id: 'd2', steps: [] }),
+        ] }
+      : { data: null }))
+    const { load, demos } = useDemos(client)
+    await load()
+    expect(demos.value.map(d => [d.id, d.thumbnail_path, d.step_count])).toEqual([
+      ['d1', 'u1/d1/a.webp', 2],
+      ['d2', null, 0],
+    ])
+    expect(demos.value[0]).not.toHaveProperty('steps')
+  })
+})
+
 describe('useDemos.remove', () => {
   it('menghapus semua gambar demo sebelum baris demo', async () => {
     const { client } = fakeSupabase((c) => {

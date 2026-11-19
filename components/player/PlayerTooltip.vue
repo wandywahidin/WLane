@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import type { ResolvedPlacement } from '../../utils/tooltip-placement'
-
 import { computed } from 'vue'
+import type { ResolvedPlacement } from '../../utils/tooltip-placement'
 
 const props = defineProps<{
   text: string
@@ -22,7 +21,7 @@ const align = computed(() => {
 <template>
   <div
     data-test="tooltip"
-    class="player-tooltip"
+    class="player-tooltip rounded-xl bg-slate-900 px-4 py-3 text-[15px] leading-relaxed font-medium text-white shadow-2xl shadow-slate-900/30 [overflow-wrap:anywhere] whitespace-pre-line"
     :class="[placement, align]"
     role="note"
     :style="placement === 'below-image' ? undefined : { left: `${x}%`, top: `${y}%` }"
@@ -32,19 +31,27 @@ const align = computed(() => {
 </template>
 
 <style scoped>
-.player-tooltip {
-  background: #1d2433; color: #fff; padding: 10px 12px; border-radius: 8px;
-  font-size: 0.95rem; line-height: 1.4; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  white-space: pre-line; overflow-wrap: anywhere;
+/* Lebar mengikuti gambar, tapi tidak kurang dari 200px supaya tetap terbaca di screenshot HP yang sempit. */
+.player-tooltip:not(.below-image) { position: absolute; z-index: 2; width: max-content; max-width: max(min(300px, 46%), 200px); }
+.player-tooltip::after {
+  content: ''; position: absolute; width: 12px; height: 12px; background: inherit; border-radius: 2px;
 }
-.player-tooltip:not(.below-image) { position: absolute; width: max-content; max-width: min(280px, 45%); z-index: 2; }
-.top { transform: translate(-50%, calc(-100% - 22px)); }
-.bottom { transform: translate(-50%, 22px); }
-.top.align-start { transform: translate(-18px, calc(-100% - 22px)); }
-.top.align-end { transform: translate(calc(-100% + 18px), calc(-100% - 22px)); }
-.bottom.align-start { transform: translate(-18px, 22px); }
-.bottom.align-end { transform: translate(calc(-100% + 18px), 22px); }
-.left { transform: translate(calc(-100% - 22px), -50%); }
-.right { transform: translate(22px, -50%); }
-.below-image { position: static; margin-top: 10px; }
+.top { transform: translate(-50%, calc(-100% - 24px)); }
+.top::after { bottom: -5px; left: calc(50% - 6px); transform: rotate(45deg); }
+.bottom { transform: translate(-50%, 24px); }
+.bottom::after { top: -5px; left: calc(50% - 6px); transform: rotate(45deg); }
+.left { transform: translate(calc(-100% - 24px), -50%); }
+.left::after { right: -5px; top: calc(50% - 6px); transform: rotate(45deg); }
+.right { transform: translate(24px, -50%); }
+.right::after { left: -5px; top: calc(50% - 6px); transform: rotate(45deg); }
+
+.top.align-start { transform: translate(-22px, calc(-100% - 24px)); }
+.top.align-end { transform: translate(calc(-100% + 22px), calc(-100% - 24px)); }
+.bottom.align-start { transform: translate(-22px, 24px); }
+.bottom.align-end { transform: translate(calc(-100% + 22px), 24px); }
+.align-start::after { left: 16px; }
+.align-end::after { left: auto; right: 16px; }
+
+.below-image { position: relative; margin-top: 14px; }
+.below-image::after { top: -5px; left: 24px; transform: rotate(45deg); }
 </style>

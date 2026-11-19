@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { SnapshotStep } from '../../types/demo'
 import { resolvePlacement } from '../../utils/tooltip-placement'
 import PlayerTooltip from './PlayerTooltip.vue'
+import UiIcon from '../UiIcon.vue'
 
 // fit: mode embed — seluruh player (gambar, tooltip, tombol) muat di tinggi iframe.
 const props = defineProps<{ steps: SnapshotStep[]; imageUrl: (path: string) => string; fit?: boolean }>()
@@ -18,6 +19,7 @@ const hotspot = computed(() => ({ x: Number(current.value?.hotspot_x ?? 50), y: 
 const placement = computed(() =>
   current.value ? resolvePlacement(current.value.tooltip_placement, hotspot.value, viewportWidth.value) : 'below-image',
 )
+const progress = computed(() => (total.value ? Math.min(index.value + 1, total.value) / total.value : 0))
 
 function next() { if (index.value < total.value) index.value++ }
 function prev() { if (index.value > 0) index.value-- }
@@ -48,39 +50,41 @@ watch(index, (i) => {
 </script>
 
 <template>
-  <div class="demo-player" :class="{ fit }">
+  <div class="demo-player mx-auto w-full max-w-6xl" :class="{ fit }">
     <template v-if="!done && current">
       <div class="stage-wrap">
-      <div
-        data-test="stage"
-        class="stage"
-        :style="{ '--ar': String(Math.round((current.image_width / current.image_height) * 1000) / 1000) }"
-      >
-        <img
-          :src="imageUrl(current.image_path)"
-          :width="current.image_width"
-          :height="current.image_height"
-          :alt="`Langkah ${index + 1}`"
-          draggable="false"
+        <div
+          data-test="stage"
+          class="stage relative leading-[0]"
+          :style="{ '--ar': String(Math.round((current.image_width / current.image_height) * 1000) / 1000) }"
         >
-        <button
-          data-test="hotspot"
-          type="button"
-          class="hotspot"
-          :style="{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }"
-          :aria-label="index + 1 < total ? 'Lanjut ke langkah berikutnya' : 'Selesai'"
-          @click="next"
-        >
-          <span class="pulse" />
-        </button>
-        <PlayerTooltip
-          v-if="placement !== 'below-image' && current.tooltip_text"
-          :text="current.tooltip_text"
-          :placement="placement"
-          :x="hotspot.x"
-          :y="hotspot.y"
-        />
-      </div>
+          <img
+            :src="imageUrl(current.image_path)"
+            :width="current.image_width"
+            :height="current.image_height"
+            :alt="`Langkah ${index + 1}`"
+            draggable="false"
+            class="block h-auto w-full rounded-xl bg-slate-100 shadow-xl ring-1 shadow-slate-900/10 ring-slate-900/10 select-none"
+          >
+          <button
+            data-test="hotspot"
+            type="button"
+            class="absolute z-[1] size-8 -translate-1/2 cursor-pointer rounded-full focus-visible:outline-3 focus-visible:outline-offset-4 focus-visible:outline-amber-400"
+            :style="{ left: `${hotspot.x}%`, top: `${hotspot.y}%` }"
+            :aria-label="index + 1 < total ? 'Lanjut ke langkah berikutnya' : 'Selesai'"
+            @click="next"
+          >
+            <span class="pointer-events-none absolute inset-0 animate-pulse-ring rounded-full bg-brand-500 motion-reduce:animate-none" />
+            <span class="pointer-events-none absolute inset-0 rounded-full border-[3px] border-white bg-brand-600 shadow-lg shadow-brand-900/40" />
+          </button>
+          <PlayerTooltip
+            v-if="placement !== 'below-image' && current.tooltip_text"
+            :text="current.tooltip_text"
+            :placement="placement"
+            :x="hotspot.x"
+            :y="hotspot.y"
+          />
+        </div>
       </div>
       <PlayerTooltip
         v-if="placement === 'below-image' && current.tooltip_text"
@@ -89,57 +93,49 @@ watch(index, (i) => {
         :x="hotspot.x"
         :y="hotspot.y"
       />
-      <nav class="controls">
-        <button type="button" :disabled="index === 0" @click="prev">Kembali</button>
-        <span class="progress" aria-live="polite">Langkah {{ index + 1 }} dari {{ total }}</span>
-        <button type="button" @click="next">Lanjut</button>
+
+      <nav class="controls mt-4 flex items-center gap-3">
+        <button type="button" class="btn-secondary" :disabled="index === 0" @click="prev">
+          <UiIcon name="chevron-left" :size="18" />
+          <span>Kembali</span>
+        </button>
+        <div class="flex min-w-0 flex-1 flex-col items-center gap-1.5">
+          <span class="text-xs font-semibold text-slate-500 tabular-nums" aria-live="polite">Langkah {{ index + 1 }} dari {{ total }}</span>
+          <div class="h-1.5 w-full max-w-xs overflow-hidden rounded-full bg-slate-200">
+            <div class="h-full rounded-full bg-brand-600 transition-[width] duration-300" :style="{ width: `${progress * 100}%` }" />
+          </div>
+        </div>
+        <button type="button" class="btn-primary" @click="next">
+          <span>Lanjut</span>
+          <UiIcon name="chevron-right" :size="18" />
+        </button>
       </nav>
     </template>
 
-    <div v-else class="finish">
-      <p class="finish-title">Selesai</p>
-      <p>Anda sudah melihat semua {{ total }} langkah.</p>
-      <div class="finish-actions">
-        <button v-if="total > 0" type="button" @click="prev">Kembali</button>
-        <button type="button" class="primary" @click="restart">Ulangi</button>
+    <div v-else class="finish flex aspect-[16/10] min-h-64 flex-col items-center justify-center rounded-xl bg-gradient-to-br from-brand-50 to-white p-6 text-center ring-1 ring-slate-200">
+      <div class="grid size-16 place-items-center rounded-full bg-emerald-100 text-emerald-600">
+        <UiIcon name="check" :size="32" />
+      </div>
+      <p class="mt-4 text-2xl font-bold text-slate-900">Selesai</p>
+      <p class="mt-1 text-sm text-slate-500">Anda sudah melihat semua {{ total }} langkah.</p>
+      <div class="mt-6 flex gap-2">
+        <button v-if="total > 0" type="button" class="btn-secondary" @click="prev">Kembali</button>
+        <button type="button" class="btn-primary" @click="restart">Ulangi</button>
       </div>
     </div>
   </div>
 </template>
 
 <style scoped>
-.demo-player { width: 100%; max-width: 1280px; margin: 0 auto; }
-.stage { position: relative; line-height: 0; border-radius: 8px; overflow: visible; }
-.stage img { width: 100%; height: auto; display: block; border-radius: 8px; border: 1px solid #dde2ea; user-select: none; }
-.hotspot {
-  position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; padding: 0;
-  border-radius: 50%; border: 3px solid #fff; background: #2557d6; cursor: pointer; z-index: 1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-}
-.hotspot:focus-visible { outline: 3px solid #f79009; outline-offset: 3px; }
-.pulse {
-  position: absolute; inset: -3px; border-radius: 50%; border: 3px solid #2557d6;
-  animation: pulse 1.6s ease-out infinite; pointer-events: none;
-}
-@keyframes pulse {
-  from { transform: scale(1); opacity: 0.9; }
-  to { transform: scale(2.4); opacity: 0; }
-}
-@media (prefers-reduced-motion: reduce) { .pulse { animation: none; } }
+/* Halaman biasa: gambar dibatasi setinggi layar supaya tombol tetap terlihat tanpa scroll;
+   screenshot HP yang sangat tinggi tetap minimal 22rem lebarnya (boleh scroll). */
+.demo-player:not(.fit) .stage { width: min(100%, max(calc((100dvh - 16rem) * var(--ar)), 22rem)); margin-inline: auto; }
+
 /* Mode fit (embed): kolom setinggi iframe; panggung mengikuti rasio gambar
    di dalam ruang yang tersisa supaya hotspot tetap tepat dan tombol tidak terpotong. */
-.fit { height: 100vh; display: flex; flex-direction: column; padding: 8px; }
+.fit { height: 100vh; display: flex; flex-direction: column; padding: 10px; max-width: none; }
 .fit .stage-wrap { flex: 1 1 auto; min-height: 0; container-type: size; display: flex; justify-content: center; align-items: flex-start; }
 .fit .stage { width: min(100cqw, 100cqh * var(--ar)); }
-.fit .controls { flex: none; margin-top: 6px; }
+.fit .controls { flex: none; margin-top: 10px; }
 .fit .finish { flex: 1; aspect-ratio: auto; min-height: 0; }
-.controls { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 10px; }
-.progress { font-size: 0.9rem; color: #5b6475; }
-.finish {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  min-height: 240px; aspect-ratio: 16 / 10; border: 1px solid #dde2ea; border-radius: 8px; background: #f5f7fa;
-  text-align: center; padding: 16px;
-}
-.finish-title { font-size: 1.5rem; font-weight: 700; margin: 0; }
-.finish-actions { display: flex; gap: 8px; margin-top: 8px; }
 </style>

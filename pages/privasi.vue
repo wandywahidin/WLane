@@ -3,11 +3,7 @@ useSeoMeta({ title: 'Kebijakan privasi — Panduan Interaktif' })
 </script>
 
 <template>
-  <article class="container legal">
-    <NuxtLink to="/">← Beranda</NuxtLink>
-    <h1>Kebijakan privasi</h1>
-    <p class="muted">Terakhir diperbarui: 19 November 2026</p>
-
+  <LegalPage title="Kebijakan privasi" updated="19 November 2026">
     <h2>Data yang kami simpan</h2>
     <ul>
       <li><strong>Akun:</strong> alamat email dan nama dari akun Google yang Anda pakai untuk masuk.</li>
@@ -37,11 +33,5 @@ useSeoMeta({ title: 'Kebijakan privasi — Panduan Interaktif' })
       <li>Hapus akun beserta semua data dari halaman <NuxtLink to="/akun">Akun</NuxtLink>, tombol "Hapus akun dan semua data".</li>
     </ul>
     <p>Admin dapat menghapus konten yang melanggar <NuxtLink to="/syarat">syarat penggunaan</NuxtLink>.</p>
-  </article>
+  </LegalPage>
 </template>
-
-<style scoped>
-.legal { max-width: 720px; }
-.legal h2 { font-size: 1.15rem; margin-top: 28px; }
-.muted { color: var(--muted); }
-</style>

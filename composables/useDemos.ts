@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { Demo } from '../types/demo'
+import type { Demo, DemoListItem } from '../types/demo'
 import { deleteImages, listDemoImages } from '../utils/image-store'
 import { readConfigInt } from '../utils/app-config'
 import { randomSlug } from '../utils/slug'
@@ -8,17 +8,24 @@ import { randomSlug } from '../utils/slug'
 const SLUG_RETRIES = 3
 
 export function useDemos(client: SupabaseClient = useSupabaseClient()) {
-  const demos = ref<Demo[]>([])
+  const demos = ref<DemoListItem[]>([])
   const error = ref<string | null>(null)
 
   async function load(): Promise<void> {
     error.value = null
-    const { data, error: e } = await client.from('demos').select('*').order('updated_at', { ascending: false })
+    const { data, error: e } = await client
+      .from('demos')
+      .select('*, steps(image_path, position)')
+      .order('updated_at', { ascending: false })
     if (e) {
       error.value = 'Gagal memuat demo'
       throw e
     }
-    demos.value = (data ?? []) as Demo[]
+    type Row = Demo & { steps?: Array<{ image_path: string; position: number }> }
+    demos.value = ((data ?? []) as Row[]).map(({ steps, ...demo }) => {
+      const first = [...(steps ?? [])].sort((a, b) => a.position - b.position)[0]
+      return { ...demo, thumbnail_path: first?.image_path ?? null, step_count: steps?.length ?? 0 }
+    })
   }
 
   async function create(title: string): Promise<Demo> {
@@ -31,7 +38,7 @@ export function useDemos(client: SupabaseClient = useSupabaseClient()) {
         .single()
       if (!e) {
         const demo = data as Demo
-        demos.value = [demo, ...demos.value]
+        demos.value = [{ ...demo, thumbnail_path: null, step_count: 0 }, ...demos.value]
         return demo
       }
       if (e.code === '23505') continue // slug bentrok, coba slug lain

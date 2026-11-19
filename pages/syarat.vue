@@ -3,11 +3,7 @@ useSeoMeta({ title: 'Syarat penggunaan — Panduan Interaktif' })
 </script>
 
 <template>
-  <article class="container legal">
-    <NuxtLink to="/">← Beranda</NuxtLink>
-    <h1>Syarat penggunaan</h1>
-    <p class="muted">Terakhir diperbarui: 19 November 2026</p>
-
+  <LegalPage title="Syarat penggunaan" updated="19 November 2026">
     <h2>Layanan</h2>
     <p>
       Panduan Interaktif membantu Anda membuat petunjuk penggunaan website dari screenshot. Layanan ini
@@ -33,11 +29,5 @@ useSeoMeta({ title: 'Syarat penggunaan — Panduan Interaktif' })
 
     <h2>Privasi</h2>
     <p>Lihat <NuxtLink to="/privasi">kebijakan privasi</NuxtLink>.</p>
-  </article>
+  </LegalPage>
 </template>
-
-<style scoped>
-.legal { max-width: 720px; }
-.legal h2 { font-size: 1.15rem; margin-top: 28px; }
-.muted { color: var(--muted); }
-</style>

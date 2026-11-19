@@ -25,13 +25,16 @@ async function loadPublished(): Promise<PublishedDemo | null> {
   return (data as PublishedDemo | null) ?? null
 }
 
+// `false` (bukan null) untuk "tidak ada": useAsyncData mengambil ulang di klien kalau hasilnya null,
+// yang membuat hydration tidak cocok.
 const { data, pending } = await useAsyncData(
   `demo:${slug}:${preview ? 'preview' : 'published'}`,
-  () => (preview ? loadPreview() : loadPublished()),
+  async () => (await (preview ? loadPreview() : loadPublished())) ?? false,
   { server: !preview },
 )
 
-const found = computed(() => !!data.value && data.value.steps.length > 0)
+const demo = computed<PublishedDemo | null>(() => data.value || null)
+const found = computed(() => !!demo.value && demo.value.steps.length > 0)
 
 if (import.meta.server && !preview && !found.value) {
   const event = useRequestEvent()
@@ -39,45 +42,58 @@ if (import.meta.server && !preview && !found.value) {
 }
 
 const imageUrl = (path: string) => publicImageUrl(supabase, path)
-const first = computed<Pick<Step, 'image_path'> | undefined>(() => data.value?.steps[0])
+const first = computed<Pick<Step, 'image_path'> | undefined>(() => demo.value?.steps[0])
 
 useSeoMeta({
-  title: () => (found.value ? `${data.value!.title} — Panduan Interaktif` : 'Demo tidak ditemukan'),
-  ogTitle: () => (found.value ? data.value!.title : 'Demo tidak ditemukan'),
+  title: () => (found.value ? `${demo.value!.title} — Panduan Interaktif` : 'Demo tidak ditemukan'),
+  ogTitle: () => (found.value ? demo.value!.title : 'Demo tidak ditemukan'),
   ogDescription: 'Panduan interaktif langkah demi langkah.',
   ogImage: () => (first.value ? imageUrl(first.value.image_path) : undefined),
   twitterCard: 'summary_large_image',
   robots: () => (preview || !found.value ? 'noindex, nofollow' : undefined),
 })
+useHead({ bodyAttrs: { class: () => (embed.value ? 'bg-white' : '') } })
 </script>
 
 <template>
-  <div class="page" :class="{ embed }">
-    <header v-if="!embed && found" class="head">
-      <h1>{{ data!.title }}</h1>
-      <span v-if="preview" class="badge">Pratinjau draft</span>
-    </header>
+  <div v-if="embed" class="bg-white">
+    <p v-if="pending" class="grid h-screen place-items-center text-sm text-slate-400">Memuat…</p>
+    <PlayerDemoPlayer v-else-if="found" :steps="demo!.steps" :image-url="imageUrl" fit />
+    <div v-else class="grid h-screen place-items-center p-6 text-center">
+      <div>
+        <h1 class="text-lg font-bold">Demo tidak ditemukan</h1>
+        <p class="mt-1 text-sm text-slate-500">Demo ini belum atau tidak lagi diterbitkan.</p>
+      </div>
+    </div>
+  </div>
 
-    <p v-if="pending" class="state">Memuat…</p>
-    <PlayerDemoPlayer v-else-if="found" :steps="data!.steps" :image-url="imageUrl" :fit="embed" />
-    <div v-else class="state not-found">
-      <h1>Demo tidak ditemukan</h1>
-      <p>Link ini mungkin salah, atau demonya belum atau tidak lagi diterbitkan.</p>
+  <div v-else class="flex min-h-dvh flex-col">
+    <div v-if="preview" class="flex items-center justify-center gap-2 bg-amber-400 px-4 py-2 text-sm font-semibold text-amber-950">
+      <UiIcon name="eye" :size="16" />
+      Pratinjau draft — hanya Anda yang bisa melihat ini
     </div>
 
-    <footer v-if="!embed" class="foot">
-      Dibuat dengan <NuxtLink to="/">Panduan Interaktif</NuxtLink>
+    <header v-if="found" class="mx-auto w-full max-w-6xl px-4 pt-6 pb-4 sm:px-6 sm:pt-10">
+      <p class="text-xs font-semibold tracking-wide text-brand-600 uppercase">Panduan interaktif</p>
+      <h1 class="mt-1 text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">{{ demo!.title }}</h1>
+      <p class="mt-1 text-sm text-slate-500">Klik titik biru yang berdenyut untuk lanjut ke langkah berikutnya.</p>
+    </header>
+
+    <main class="flex-1 px-4 pb-10 sm:px-6">
+      <p v-if="pending" class="py-24 text-center text-sm text-slate-400">Memuat…</p>
+      <PlayerDemoPlayer v-else-if="found" :steps="demo!.steps" :image-url="imageUrl" />
+      <div v-else class="mx-auto flex max-w-md flex-col items-center py-24 text-center">
+        <div class="grid size-14 place-items-center rounded-2xl bg-slate-100 text-slate-400">
+          <UiIcon name="photo" :size="28" />
+        </div>
+        <h1 class="mt-4 text-xl font-bold">Demo tidak ditemukan</h1>
+        <p class="mt-2 text-sm text-slate-500">Link ini mungkin salah, atau demonya belum atau tidak lagi diterbitkan.</p>
+        <NuxtLink to="/" class="btn-secondary mt-6">Ke beranda</NuxtLink>
+      </div>
+    </main>
+
+    <footer class="border-t border-slate-200 py-5 text-center text-xs text-slate-500">
+      Dibuat dengan <NuxtLink to="/" class="font-semibold text-slate-700 hover:text-brand-700">Panduan Interaktif</NuxtLink>
     </footer>
   </div>
 </template>
-
-<style scoped>
-.page { max-width: 1280px; margin: 0 auto; padding: 16px; }
-.page.embed { padding: 0; max-width: none; }
-.head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-.head h1 { font-size: 1.25rem; margin: 0; }
-.badge { font-size: 0.8rem; background: #fef0c7; color: #93370d; padding: 2px 8px; border-radius: 99px; }
-.state { text-align: center; padding: 48px 16px; color: var(--muted); }
-.not-found h1 { color: var(--fg); font-size: 1.4rem; }
-.foot { margin-top: 24px; text-align: center; font-size: 0.85rem; color: var(--muted); }
-</style>

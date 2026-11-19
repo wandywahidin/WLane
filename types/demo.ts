@@ -6,5 +6,6 @@ export type SnapshotStep = Omit<Step, 'id' | 'demo_id' | 'position'>
 export interface Demo { id: string; owner_id: string; title: string; slug: string;
   status: 'draft' | 'published'; published_snapshot: SnapshotStep[] | null;
   published_at: string | null; created_at: string; updated_at: string }
-export type DemoStatus = 'draft' | 'published' | 'published_dirty'
+export interface DemoListItem extends Demo { thumbnail_path: string | null; step_count: number }
+export type DemoStatus ='draft' | 'published' | 'published_dirty'
 export interface PublishedDemo { title: string; slug: string; steps: SnapshotStep[] }

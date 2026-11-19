@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Step } from '~/types/demo'
+import UiIcon from '../UiIcon.vue'
 
 const props = defineProps<{ steps: Step[]; activeIndex: number; imageUrl: (path: string) => string; busy?: boolean }>()
 const emit = defineEmits<{
@@ -34,13 +35,20 @@ function move(i: number, delta: number) {
 </script>
 
 <template>
-  <aside class="step-list">
-    <h2>Langkah</h2>
-    <ol>
+  <aside class="flex min-h-0 flex-col">
+    <div class="flex items-center justify-between px-4 pt-4 pb-3">
+      <h2 class="text-sm font-bold text-slate-900">Langkah <span class="font-medium text-slate-400">{{ steps.length }}</span></h2>
+    </div>
+
+    <ol class="flex min-h-0 flex-1 gap-3 overflow-auto px-4 pb-3 lg:flex-col">
       <li
         v-for="(step, i) in steps"
         :key="step.id"
-        :class="{ active: i === activeIndex, over: i === dragOver, 'no-hotspot': step.hotspot_x === null }"
+        class="group relative w-40 shrink-0 rounded-xl p-1.5 ring-1 transition lg:w-auto"
+        :class="[
+          i === activeIndex ? 'bg-brand-50 ring-2 ring-brand-500' : 'bg-white ring-slate-200 hover:ring-slate-300',
+          i === dragOver ? 'ring-2 ring-brand-400 ring-dashed' : '',
+        ]"
         :draggable="busy ? 'false' : 'true'"
         @dragstart="dragFrom = i"
         @dragover.prevent="dragOver = i"
@@ -48,39 +56,45 @@ function move(i: number, delta: number) {
         @drop.prevent="onDrop(i)"
         @dragend="dragFrom = null; dragOver = null"
       >
-        <button type="button" class="thumb" :aria-label="`Langkah ${i + 1}`" @click="emit('select', i)">
-          <span class="num">{{ i + 1 }}</span>
-          <img :src="imageUrl(step.image_path)" alt="" loading="lazy" draggable="false">
+        <button type="button" class="block w-full cursor-pointer text-left" :aria-label="`Langkah ${i + 1}`" @click="emit('select', i)">
+          <div class="relative overflow-hidden rounded-lg bg-slate-100">
+            <img :src="imageUrl(step.image_path)" alt="" loading="lazy" draggable="false" class="aspect-[16/10] w-full object-cover object-top">
+            <span
+              class="absolute top-1.5 left-1.5 grid size-6 place-items-center rounded-full text-xs font-bold text-white shadow"
+              :class="step.hotspot_x === null ? 'bg-amber-500' : 'bg-brand-600'"
+            >{{ i + 1 }}</span>
+            <span
+              v-if="step.hotspot_x !== null && step.hotspot_y !== null"
+              class="absolute size-2.5 -translate-1/2 rounded-full bg-brand-600 ring-2 ring-white"
+              :style="{ left: `${step.hotspot_x}%`, top: `${step.hotspot_y}%` }"
+            />
+          </div>
+          <p class="mt-1.5 line-clamp-1 px-0.5 text-xs" :class="step.tooltip_text ? 'text-slate-600' : 'text-slate-400 italic'">
+            {{ step.hotspot_x === null ? 'Belum ada hotspot' : step.tooltip_text || 'Tanpa tooltip' }}
+          </p>
         </button>
-        <div class="tools">
-          <button type="button" title="Naik" :disabled="busy || i === 0" @click="move(i, -1)">↑</button>
-          <button type="button" title="Turun" :disabled="busy || i === steps.length - 1" @click="move(i, 1)">↓</button>
-          <button type="button" class="danger" title="Hapus langkah" :disabled="busy" @click="emit('remove', step.id)">✕</button>
+
+        <div class="absolute top-2.5 right-2.5 flex gap-0.5 rounded-lg bg-white/95 p-0.5 opacity-100 shadow-sm ring-1 ring-slate-200 transition lg:opacity-0 lg:group-hover:opacity-100 lg:focus-within:opacity-100">
+          <button type="button" title="Naik" class="btn-icon p-1 text-slate-500 hover:bg-slate-100" :disabled="busy || i === 0" @click="move(i, -1)">
+            <UiIcon name="chevron-up" :size="14" />
+          </button>
+          <button type="button" title="Turun" class="btn-icon p-1 text-slate-500 hover:bg-slate-100" :disabled="busy || i === steps.length - 1" @click="move(i, 1)">
+            <UiIcon name="chevron-down" :size="14" />
+          </button>
+          <button type="button" title="Hapus langkah" class="btn-icon p-1 text-slate-500 hover:bg-red-50 hover:text-red-600" :disabled="busy" @click="emit('remove', step.id)">
+            <UiIcon name="trash" :size="14" />
+          </button>
         </div>
       </li>
     </ol>
-    <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden @change="onFiles">
-    <button type="button" class="primary add" :disabled="busy" @click="fileInput?.click()">
-      {{ busy ? 'Mengunggah…' : '+ Tambah langkah' }}
-    </button>
+
+    <div class="border-t border-slate-200 p-4">
+      <input ref="fileInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden @change="onFiles">
+      <button type="button" class="btn-secondary w-full" :disabled="busy" @click="fileInput?.click()">
+        <UiIcon :name="busy ? 'refresh' : 'plus'" :size="18" :class="{ 'animate-spin': busy }" />
+        {{ busy ? 'Mengunggah…' : 'Tambah langkah' }}
+      </button>
+      <p class="mt-2 text-center text-[11px] text-slate-400">PNG, JPG, WebP · maks. 10 MB</p>
+    </div>
   </aside>
 </template>
-
-<style scoped>
-.step-list { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-h2 { font-size: 1rem; margin: 0; }
-ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; overflow-y: auto; }
-li { border: 2px solid var(--border); border-radius: var(--radius); padding: 4px; background: var(--bg); }
-li.active { border-color: var(--accent); }
-li.over { border-style: dashed; border-color: var(--accent); }
-li.no-hotspot .num { background: #b54708; }
-.thumb { position: relative; display: block; width: 100%; padding: 0; border: 0; background: var(--surface); }
-.thumb img { display: block; width: 100%; aspect-ratio: 16 / 10; object-fit: cover; border-radius: 4px; }
-.num {
-  position: absolute; top: 4px; left: 4px; background: var(--accent); color: #fff;
-  font-size: 0.75rem; min-width: 20px; padding: 0 6px; border-radius: 99px; text-align: center;
-}
-.tools { display: flex; gap: 4px; justify-content: flex-end; margin-top: 4px; }
-.tools button { padding: 2px 8px; font-size: 0.8rem; }
-.add { width: 100%; }
-</style>
