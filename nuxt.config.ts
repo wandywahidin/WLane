@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2026-11-19',
   devtools: { enabled: false },
   modules: ['@nuxtjs/supabase'],
+  css: ['~/assets/main.css'],
   supabase: {
     // Pengalihan login diatur oleh middleware sendiri (middleware/auth.ts).
     redirect: false,
