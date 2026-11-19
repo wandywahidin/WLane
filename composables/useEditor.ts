@@ -288,4 +288,3 @@ export function useEditor(
     load, updateStep, setKind, flush, hasPendingChanges, addImages, removeStep, reorder, publish, unpublish, rename,
   }
 }
-

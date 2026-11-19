@@ -302,7 +302,7 @@ describe('jenis langkah (sorotan/modal)', () => {
     modal_title: 'Halo', modal_body: '', buttons: [X],
   })
 
-  it('setKind modal pada langkah tanpa tombol â†’ satu update dengan tombol bawaan', async () => {
+  it('setKind modal pada langkah tanpa tombol → satu update dengan tombol bawaan', async () => {
     vi.useFakeTimers()
     const { editor, calls } = setup({ steps: [{ ...stepRow('s1', 0), kind: 'hotspot', buttons: [] }] })
     await editor.load()
