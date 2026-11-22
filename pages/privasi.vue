@@ -6,7 +6,7 @@ useSeoMeta({ title: 'Kebijakan privasi — WLane' })
   <LegalPage title="Kebijakan privasi" updated="19 November 2026">
     <h2>Data yang kami simpan</h2>
     <ul>
-      <li><strong>Akun:</strong> alamat email dan nama dari akun Google yang Anda pakai untuk masuk.</li>
+      <li><strong>Akun:</strong> alamat email yang Anda pakai untuk mendaftar. Password disimpan Supabase dalam bentuk hash, tidak pernah dalam bentuk aslinya.</li>
       <li><strong>Demo:</strong> judul, urutan langkah, posisi hotspot, teks tooltip, dan screenshot yang Anda unggah.</li>
     </ul>
     <p>Kami tidak memasang pelacak iklan dan tidak menjual data Anda.</p>
@@ -25,7 +25,7 @@ useSeoMeta({ title: 'Kebijakan privasi — WLane' })
     </p>
 
     <h2>Penyimpanan dan layanan pihak ketiga</h2>
-    <p>Data disimpan di Supabase (database, login, dan penyimpanan file). Login memakai Google.</p>
+    <p>Data disimpan di Supabase (database, login, dan penyimpanan file). Login memakai email dan password.</p>
 
     <h2>Menghapus data</h2>
     <ul>

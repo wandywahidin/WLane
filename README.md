@@ -1,8 +1,8 @@
 # WLane
 
-WLane adalah pembuat panduan interaktif berbasis screenshot, versi sederhana ala Storylane. Pembuat demo login dengan Google, mengunggah screenshot, menaruh hotspot dan tooltip, lalu menerbitkannya. Penonton membuka demo lewat link publik atau iframe, tanpa login.
+WLane adalah pembuat panduan interaktif berbasis screenshot, versi sederhana ala Storylane. Pembuat demo mendaftar dengan email dan password, mengunggah screenshot, menaruh hotspot dan tooltip, lalu menerbitkannya. Penonton membuka demo lewat link publik atau iframe, tanpa login.
 
-**Stack:** Nuxt 3 (Vue 3, TypeScript) dan Supabase (Auth Google, Postgres dengan RLS, Storage). Tidak ada server sendiri selain fungsi Nitro milik Nuxt.
+**Stack:** Nuxt 3 (Vue 3, TypeScript) dan Supabase (Auth email + password, Postgres dengan RLS, Storage). Tidak ada server sendiri selain fungsi Nitro milik Nuxt.
 
 ## Menjalankan secara lokal
 
@@ -15,7 +15,7 @@ cp .env.example .env        # isi SUPABASE_URL dan SUPABASE_KEY dari keluaran di
 npm run dev                 # http://localhost:3000
 ```
 
-Supaya bisa login Google secara lokal, buat OAuth client di Google Cloud Console dengan redirect URI `http://127.0.0.1:54321/auth/v1/callback`. Isi `GOOGLE_CLIENT_ID` dan `GOOGLE_SECRET` di `.env`, lalu jalankan `npx supabase stop && npx supabase start`.
+Buka `/daftar` untuk membuat akun (password minimal 8 karakter). Di Supabase lokal konfirmasi email dimatikan, jadi akun langsung bisa dipakai.
 
 ### Tes
 
@@ -38,11 +38,10 @@ Supaya bisa login Google secara lokal, buat OAuth client di Google Cloud Console
    npx supabase link --project-ref <project-ref>
    npx supabase db push
    ```
-3. **Authentication → Sign In / Providers:** matikan Email, aktifkan Google, lalu isi Client ID dan Secret.
+3. **Authentication → Sign In / Providers → Email:** aktifkan Email, **matikan "Confirm email"**, dan isi "Minimum password length" dengan 8. Layanan email bawaan Supabase hanya mengirim ke anggota tim project, jadi tanpa SMTP sendiri konfirmasi email tidak akan sampai ke pengguna.
 4. **Authentication → URL Configuration:**
    - Site URL: `https://<domain-anda>`
    - Redirect URLs: `https://<domain-anda>/**`
-5. Di Google Cloud Console, tambahkan redirect URI `https://<project-ref>.supabase.co/auth/v1/callback`.
 
 ### 2. Hosting (Vercel, Netlify, atau Cloudflare Pages)
 

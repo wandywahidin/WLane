@@ -6,10 +6,8 @@ useSeoMeta({
   ogDescription: 'Ubah screenshot menjadi panduan interaktif langkah demi langkah.',
 })
 
-const supabase = useSupabaseClient()
 const sampleSlug = ref<string | null>(null)
 const origin = ref('')
-const signingIn = ref(false)
 
 // Halaman ini di-prerender; demo contoh dibaca di browser supaya bisa diganti tanpa deploy.
 onMounted(async () => {
@@ -23,16 +21,6 @@ onMounted(async () => {
 })
 
 const sampleEmbed = computed(() => (sampleSlug.value ? embedCode(origin.value, sampleSlug.value) : ''))
-
-async function start() {
-  signingIn.value = true
-  try {
-    await signInWithGoogle(supabase, window.location.origin)
-  } catch {
-    signingIn.value = false
-    await navigateTo('/login?error=start')
-  }
-}
 
 const features = [
   { icon: 'code', title: 'Tanpa ubah kode', text: 'Cukup screenshot. Website Anda tidak perlu dipasangi script apa pun.' },
@@ -54,7 +42,8 @@ const steps = [
       <div class="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
         <AppLogo />
         <div class="flex items-center gap-2">
-          <NuxtLink to="/dashboard" class="btn-ghost">Masuk</NuxtLink>
+          <NuxtLink to="/login" class="btn-ghost">Masuk</NuxtLink>
+          <NuxtLink to="/daftar" class="btn-primary">Daftar</NuxtLink>
         </div>
       </div>
     </header>
@@ -77,10 +66,10 @@ const steps = [
           seperti memakai website aslinya, di desktop maupun HP.
         </p>
         <div class="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <button type="button" class="btn-primary btn-lg w-full shadow-lg shadow-brand-600/25 sm:w-auto" :disabled="signingIn" @click="start">
-            {{ signingIn ? 'Mengalihkan…' : 'Mulai dengan Google' }}
+          <NuxtLink to="/daftar" class="btn-primary btn-lg w-full shadow-lg shadow-brand-600/25 sm:w-auto">
+            Mulai gratis
             <UiIcon name="arrow-left" :size="18" class="rotate-180" />
-          </button>
+          </NuxtLink>
           <a v-if="sampleSlug" href="#contoh" class="btn-secondary btn-lg w-full sm:w-auto">
             <UiIcon name="play" :size="18" /> Lihat contoh
           </a>
@@ -174,9 +163,9 @@ const steps = [
       <div class="mx-auto max-w-4xl rounded-3xl bg-brand-600 px-6 py-14 text-center text-white shadow-xl shadow-brand-600/25">
         <h2 class="text-2xl font-extrabold tracking-tight sm:text-3xl">Buat panduan pertama Anda hari ini</h2>
         <p class="mx-auto mt-3 max-w-xl text-brand-100">Gantikan PDF dan teks panjang dengan panduan yang bisa diklik.</p>
-        <button type="button" class="btn btn-lg mt-8 bg-white text-brand-700 shadow-sm hover:bg-brand-50" :disabled="signingIn" @click="start">
-          Mulai dengan Google
-        </button>
+        <NuxtLink to="/daftar" class="btn btn-lg mt-8 bg-white text-brand-700 shadow-sm hover:bg-brand-50">
+          Daftar gratis
+        </NuxtLink>
       </div>
     </section>
 

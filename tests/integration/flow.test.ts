@@ -1,5 +1,5 @@
 // Alur lengkap terhadap Supabase lokal: buat demo → langkah → terbit → baca publik →
-// batal terbit → hapus demo → hapus akun. Login Google digantikan JWT yang ditandatangani
+// batal terbit → hapus demo → hapus akun. Login digantikan JWT yang ditandatangani
 // dengan JWT secret lokal (hanya berlaku di `supabase start`).
 import { createHmac, randomUUID } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
