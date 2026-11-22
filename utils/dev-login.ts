@@ -3,7 +3,7 @@
 // Di production provider email dimatikan, jadi kredensial ini tidak berguna di sana.
 import type { SupabaseClient } from '@supabase/supabase-js'
 
-export const DEV_EMAIL = 'dev@panduan.local'
+export const DEV_EMAIL = 'dev@wlane.local'
 export const DEV_PASSWORD = 'dev12345'
 
 /** Masuk dengan akun dev; kalau belum ada, akun dibuat dulu (konfirmasi email mati di lokal). */

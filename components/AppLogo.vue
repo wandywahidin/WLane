@@ -11,6 +11,6 @@ withDefaults(defineProps<{ to?: string; dark?: boolean }>(), { to: '/', dark: fa
         <path d="M8.5 20h7" stroke-linecap="round" />
       </svg>
     </span>
-    <span>Panduan<span class="text-brand-600" :class="{ 'text-brand-300': dark }">.</span></span>
+    <span>WLane<span class="text-brand-600" :class="{ 'text-brand-300': dark }">.</span></span>
   </NuxtLink>
 </template>

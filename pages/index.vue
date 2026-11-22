@@ -1,8 +1,8 @@
 <script setup lang="ts">
 useSeoMeta({
-  title: 'Panduan Interaktif — petunjuk penggunaan website yang bisa diklik',
+  title: 'WLane — petunjuk penggunaan website yang bisa diklik',
   description: 'Ubah screenshot website Anda menjadi panduan interaktif langkah demi langkah. Bagikan sebagai link atau tanam lewat iframe.',
-  ogTitle: 'Panduan Interaktif',
+  ogTitle: 'WLane',
   ogDescription: 'Ubah screenshot menjadi panduan interaktif langkah demi langkah.',
 })
 

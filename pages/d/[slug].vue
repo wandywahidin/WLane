@@ -45,7 +45,7 @@ const imageUrl = (path: string) => publicImageUrl(supabase, path)
 const first = computed<Pick<Step, 'image_path'> | undefined>(() => demo.value?.steps[0])
 
 useSeoMeta({
-  title: () => (found.value ? `${demo.value!.title} — Panduan Interaktif` : 'Demo tidak ditemukan'),
+  title: () => (found.value ? `${demo.value!.title} — WLane` : 'Demo tidak ditemukan'),
   ogTitle: () => (found.value ? demo.value!.title : 'Demo tidak ditemukan'),
   ogDescription: 'Panduan interaktif langkah demi langkah.',
   ogImage: () => (first.value ? imageUrl(first.value.image_path) : undefined),
@@ -93,7 +93,7 @@ useHead({ bodyAttrs: { class: () => (embed.value ? 'bg-white' : '') } })
     </main>
 
     <footer class="border-t border-slate-200 py-5 text-center text-xs text-slate-500">
-      Dibuat dengan <NuxtLink to="/" class="font-semibold text-slate-700 hover:text-brand-700">Panduan Interaktif</NuxtLink>
+      Dibuat dengan <NuxtLink to="/" class="font-semibold text-slate-700 hover:text-brand-700">WLane</NuxtLink>
     </footer>
   </div>
 </template>

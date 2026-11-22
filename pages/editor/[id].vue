@@ -18,7 +18,7 @@ const copied = ref<string | null>(null)
 const origin = ref('')
 const shareOpen = ref(false)
 
-useSeoMeta({ title: () => `${demo.value?.title || 'Editor'} — Panduan Interaktif` })
+useSeoMeta({ title: () => `${demo.value?.title || 'Editor'} — WLane` })
 
 const imageUrl = (path: string) => publicImageUrl(supabase, path)
 const active = computed(() => steps.value[activeIndex.value] ?? null)

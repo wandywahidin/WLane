@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Masuk — Panduan Interaktif' })
+useSeoMeta({ title: 'Masuk — WLane' })
 
 const supabase = useSupabaseClient()
 const route = useRoute()

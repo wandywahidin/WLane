@@ -1,6 +1,6 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'auth' })
-useSeoMeta({ title: 'Akun — Panduan Interaktif' })
+useSeoMeta({ title: 'Akun — WLane' })
 
 const supabase = useSupabaseClient()
 const email = ref<string | null>(null)

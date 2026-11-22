@@ -1,6 +1,6 @@
-# Panduan Interaktif
+# WLane
 
-Pembuat panduan interaktif berbasis screenshot, versi sederhana ala Storylane. Pembuat demo login dengan Google, mengunggah screenshot, menaruh hotspot dan tooltip, lalu menerbitkannya. Penonton membuka demo lewat link publik atau iframe, tanpa login.
+WLane adalah pembuat panduan interaktif berbasis screenshot, versi sederhana ala Storylane. Pembuat demo login dengan Google, mengunggah screenshot, menaruh hotspot dan tooltip, lalu menerbitkannya. Penonton membuka demo lewat link publik atau iframe, tanpa login.
 
 **Stack:** Nuxt 3 (Vue 3, TypeScript) dan Supabase (Auth Google, Postgres dengan RLS, Storage). Tidak ada server sendiri selain fungsi Nitro milik Nuxt.
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Kebijakan privasi — Panduan Interaktif' })
+useSeoMeta({ title: 'Kebijakan privasi — WLane' })
 </script>
 
 <template>

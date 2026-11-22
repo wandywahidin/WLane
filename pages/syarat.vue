@@ -1,12 +1,12 @@
 <script setup lang="ts">
-useSeoMeta({ title: 'Syarat penggunaan — Panduan Interaktif' })
+useSeoMeta({ title: 'Syarat penggunaan — WLane' })
 </script>
 
 <template>
   <LegalPage title="Syarat penggunaan" updated="19 November 2026">
     <h2>Layanan</h2>
     <p>
-      Panduan Interaktif membantu Anda membuat petunjuk penggunaan website dari screenshot. Layanan ini
+      WLane membantu Anda membuat petunjuk penggunaan website dari screenshot. Layanan ini
       diberikan apa adanya, gratis, dan dengan batas pemakaian (misalnya jumlah demo per akun, langkah per
       demo, dan jumlah akun). Batas dapat berubah sewaktu-waktu.
     </p>

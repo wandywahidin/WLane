@@ -2,7 +2,7 @@
 import type { DemoListItem } from '~/types/demo'
 
 definePageMeta({ middleware: 'auth' })
-useSeoMeta({ title: 'Demo saya — Panduan Interaktif' })
+useSeoMeta({ title: 'Demo saya — WLane' })
 
 const supabase = useSupabaseClient()
 const { demos, load, create, remove, error } = useDemos()
